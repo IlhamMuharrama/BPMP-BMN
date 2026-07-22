@@ -118,6 +118,83 @@ export default function App() {
   const [notificationsList, setNotificationsList] = useState<SystemNotification[]>(INITIAL_NOTIFICATION);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
 
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const firstLoadRef = React.useRef(true);
+
+  // Load from Sheets on mount
+  React.useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await fetch('/api/sync');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.Barang && data.Barang.length > 0) setBarangList(data.Barang);
+          if (data.Kategori && data.Kategori.length > 0) setKategoriList(data.Kategori);
+          if (data.Supplier && data.Supplier.length > 0) setSupplierList(data.Supplier);
+          if (data.Unit && data.Unit.length > 0) setUnitList(data.Unit);
+          if (data.Satuan && data.Satuan.length > 0) setSatuanList(data.Satuan);
+          if (data.Pegawai && data.Pegawai.length > 0) setPegawaiList(data.Pegawai);
+          if (data.BarangMasuk && data.BarangMasuk.length > 0) setBarangMasukList(data.BarangMasuk);
+          if (data.BarangKeluar && data.BarangKeluar.length > 0) setBarangKeluarList(data.BarangKeluar);
+          if (data.Riwayat && data.Riwayat.length > 0) setRiwayatList(data.Riwayat);
+          if (data.AuditLog && data.AuditLog.length > 0) setAuditLogsList(data.AuditLog);
+          if (data.Accounts && data.Accounts.length > 0) setAccounts(data.Accounts);
+          if (data.Settings && data.Settings.length > 0) setSettings(data.Settings[0]);
+          if (data.Notifications && data.Notifications.length > 0) setNotificationsList(data.Notifications);
+        }
+      } catch (e) {
+        console.error("Gagal sinkronisasi data awal:", e);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  // Save to Sheets on change (debounced)
+  React.useEffect(() => {
+    if (isLoading) return; // Jangan save saat masih loading awal
+    if (firstLoadRef.current) {
+      firstLoadRef.current = false;
+      return; // Skip save pada render pertama setelah loading
+    }
+
+    const handler = setTimeout(async () => {
+      setIsSyncing(true);
+      try {
+        await fetch('/api/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            Barang: barangList,
+            Kategori: kategoriList,
+            Supplier: supplierList,
+            Unit: unitList,
+            Satuan: satuanList,
+            Pegawai: pegawaiList,
+            BarangMasuk: barangMasukList,
+            BarangKeluar: barangKeluarList,
+            Riwayat: riwayatList,
+            AuditLog: auditLogsList,
+            Accounts: accounts,
+            Settings: settings,
+            Notifications: notificationsList
+          })
+        });
+      } catch (e) {
+        console.error("Gagal menyimpan ke spreadsheet:", e);
+      } finally {
+        setIsSyncing(false);
+      }
+    }, 2000); // Debounce 2 detik
+
+    return () => clearTimeout(handler);
+  }, [
+    barangList, kategoriList, supplierList, unitList, satuanList, pegawaiList,
+    barangMasukList, barangKeluarList, riwayatList, auditLogsList, accounts, settings, notificationsList, isLoading
+  ]);
+
   // State for item quick mutation from dashboard
   const [quickAddBarangId, setQuickAddBarangId] = useState<string>('');
 
@@ -464,6 +541,17 @@ export default function App() {
   const barangMasukToday = barangMasukList.filter(t => t.tanggal.startsWith(todayStr)).length;
   const barangKeluarToday = barangKeluarList.filter(t => t.tanggal.startsWith(todayStr)).length;
 
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-slate-50 text-slate-500">
+        <div className="flex flex-col items-center">
+          <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
+          <p className="font-medium animate-pulse">Menghubungkan ke Google Spreadsheet...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!currentUser) {
     return (
       <LoginView
@@ -681,6 +769,21 @@ export default function App() {
           </AnimatePresence>
         </main>
       </div>
+
+      {/* Syncing Indicator */}
+      <AnimatePresence>
+        {isSyncing && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="absolute bottom-6 right-6 bg-white shadow-xl rounded-full px-4 py-2 flex items-center gap-3 border border-indigo-100 z-50"
+          >
+            <div className="w-4 h-4 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+            <span className="text-sm font-medium text-indigo-900">Menyimpan ke Google Sheets...</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

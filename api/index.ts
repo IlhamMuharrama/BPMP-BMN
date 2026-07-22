@@ -2,13 +2,14 @@ import express from "express";
 import { google } from "googleapis";
 
 const app = express();
-app.use(express.json());
+// Perbesar limit JSON untuk menyimpan seluruh state jika dibutuhkan
+app.use(express.json({ limit: '10mb' }));
 
-// Inisialisasi Google Auth Client menggunakan Environment Variables
+// Inisialisasi Google Auth Client
 const auth = new google.auth.GoogleAuth({
   credentials: {
     client_email: process.env.GOOGLE_CLIENT_EMAIL,
-    // Replace \n with actual line breaks in the private key
+    // Replace \n with actual line breaks
     private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
   },
   scopes: [
@@ -20,49 +21,174 @@ const auth = new google.auth.GoogleAuth({
 const sheets = google.sheets({ version: "v4", auth });
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 
+// Daftar tabel/entitas (Sheet Name)
+const SHEET_NAMES = [
+  "Barang", "Kategori", "Supplier", "Unit", "Satuan", "Pegawai", 
+  "BarangMasuk", "BarangKeluar", "Riwayat", "AuditLog", "Accounts", "Settings", "Notifications"
+];
+
+// Helper: Ubah Array of Objects menjadi 2D Array untuk Spreadsheet
+const jsonToSheetData = (jsonArray: any[]) => {
+  if (!jsonArray || jsonArray.length === 0) return [[]];
+  
+  // Ambil keys dari object pertama sebagai header
+  const headers = Object.keys(jsonArray[0]);
+  const rows = jsonArray.map(obj => {
+    return headers.map(header => {
+      let val = obj[header];
+      if (typeof val === 'object' || Array.isArray(val)) {
+        return JSON.stringify(val);
+      }
+      return val !== null && val !== undefined ? String(val) : "";
+    });
+  });
+  
+  return [headers, ...rows];
+};
+
+// Helper: Ubah 2D Array dari Spreadsheet menjadi Array of Objects
+const sheetDataToJson = (rows: any[][]) => {
+  if (!rows || rows.length < 2) return [];
+  const headers = rows[0];
+  
+  return rows.slice(1).map(row => {
+    const obj: any = {};
+    headers.forEach((header, index) => {
+      let val = row[index] || "";
+      // Convert boolean string back to boolean if needed, or parse JSON
+      if (val === "true") val = true;
+      else if (val === "false") val = false;
+      else if (val.startsWith("[") || val.startsWith("{")) {
+        try { val = JSON.parse(val); } catch (e) {}
+      } else if (!isNaN(Number(val)) && val !== "") {
+        val = Number(val);
+      }
+      obj[header] = val;
+    });
+    return obj;
+  });
+};
+
 // ==========================================
-// API ENDPOINT KE GOOGLE SPREADSHEET
+// ENDPOINT UNTUK SYNC DATA KE SPREADSHEET
 // ==========================================
 
-// Endpoint untuk mengambil data Barang dari Spreadsheet (Sheet bernama "Barang")
-app.get("/api/barang", async (req, res) => {
+// 1. MENGAMBIL SELURUH DATA DARI SPREADSHEET
+app.get("/api/sync", async (req, res) => {
   try {
-    if (!SPREADSHEET_ID) throw new Error("SPREADSHEET_ID tidak dikonfigurasi.");
-    
-    const response = await sheets.spreadsheets.values.get({
+    if (!SPREADSHEET_ID) throw new Error("SPREADSHEET_ID tidak dikonfigurasi. Pastikan Environment Variable di Vercel sudah diatur.");
+
+    // Coba ambil info spreadsheet untuk memastikan sheet ada
+    const spreadsheet = await sheets.spreadsheets.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: "Barang!A2:N", // Ambil dari baris 2 (hindari header) sampai akhir
     });
     
-    const rows = response.data.values || [];
-    // Parsing array dari sheet menjadi JSON Object untuk Frontend
-    const data = rows.map(row => ({
-      id: row[0],
-      nama: row[1],
-      kategori: row[2],
-      supplier: row[3],
-      satuan: row[4],
-      lokasiRak: row[5],
-      qrCodeUrl: row[6],
-      stokSekarang: parseInt(row[7]) || 0,
-      stokMin: parseInt(row[8]) || 0,
-      stokMaks: parseInt(row[9]) || 0,
-      deskripsi: row[10],
-      imageDriveUrl: row[11],
-      createdAt: row[12],
-      updatedAt: row[13]
-    }));
+    const existingSheets = spreadsheet.data.sheets?.map(s => s.properties?.title) || [];
     
-    res.json(data);
+    // Siapkan object untuk menampung semua data
+    const allData: any = {};
+
+    // Ambil data untuk setiap sheet yang ada
+    for (const sheetName of SHEET_NAMES) {
+      if (existingSheets.includes(sheetName)) {
+        const response = await sheets.spreadsheets.values.get({
+          spreadsheetId: SPREADSHEET_ID,
+          range: `${sheetName}!A1:Z`,
+        });
+        
+        allData[sheetName] = sheetDataToJson(response.data.values || []);
+      } else {
+        // Jika sheet belum ada, set kosong
+        allData[sheetName] = [];
+      }
+    }
+
+    res.json(allData);
   } catch (error: any) {
-    console.error("Gagal mengambil data:", error);
+    console.error("Gagal mengambil data dari Spreadsheet:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 2. MENYIMPAN SELURUH DATA KE SPREADSHEET (Full Override)
+app.post("/api/sync", async (req, res) => {
+  try {
+    if (!SPREADSHEET_ID) throw new Error("SPREADSHEET_ID tidak dikonfigurasi.");
+
+    const incomingData = req.body;
+    
+    // 1. Pastikan semua sheet yang dibutuhkan ada
+    const spreadsheet = await sheets.spreadsheets.get({
+      spreadsheetId: SPREADSHEET_ID,
+    });
+    const existingSheets = spreadsheet.data.sheets?.map(s => s.properties?.title) || [];
+    const sheetsToCreate = SHEET_NAMES.filter(name => !existingSheets.includes(name));
+    
+    if (sheetsToCreate.length > 0) {
+      const requests = sheetsToCreate.map(title => ({
+        addSheet: { properties: { title } }
+      }));
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId: SPREADSHEET_ID,
+        requestBody: { requests }
+      });
+    }
+
+    // 2. Clear existing data and Update with new data
+    // Kita gunakan batch update values
+    const dataUpdates: any[] = [];
+    const clearRanges: string[] = [];
+    
+    for (const sheetName of SHEET_NAMES) {
+      if (incomingData[sheetName]) {
+        const dataForSheet = incomingData[sheetName];
+        // Pastikan bukan array kosong tanpa data
+        let values = [[]]; // Default empty
+        
+        if (Array.isArray(dataForSheet) && dataForSheet.length > 0) {
+           values = jsonToSheetData(dataForSheet);
+        } else if (typeof dataForSheet === 'object' && Object.keys(dataForSheet).length > 0) {
+           // Untuk Settings (Single Object)
+           values = jsonToSheetData([dataForSheet]);
+        }
+        
+        clearRanges.push(`${sheetName}!A1:Z`);
+        dataUpdates.push({
+          range: `${sheetName}!A1`,
+          values: values
+        });
+      }
+    }
+
+    // Clear old data first
+    if (clearRanges.length > 0) {
+       await sheets.spreadsheets.values.batchClear({
+         spreadsheetId: SPREADSHEET_ID,
+         requestBody: { ranges: clearRanges }
+       });
+    }
+
+    // Write new data
+    if (dataUpdates.length > 0) {
+      await sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId: SPREADSHEET_ID,
+        requestBody: {
+          valueInputOption: "USER_ENTERED",
+          data: dataUpdates
+        }
+      });
+    }
+
+    res.json({ success: true, message: "Data berhasil disinkronisasi ke Google Spreadsheet." });
+  } catch (error: any) {
+    console.error("Gagal menyimpan data ke Spreadsheet:", error);
     res.status(500).json({ error: error.message });
   }
 });
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", message: "Backend berjalan sempurna di Vercel Serverless!" });
+  res.json({ status: "ok", message: "Backend berjalan sempurna di Vercel!" });
 });
 
 export default app;
