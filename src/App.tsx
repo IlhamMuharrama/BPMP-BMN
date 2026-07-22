@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { ShieldAlert, X } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
 import DashboardView from './components/DashboardView';
@@ -120,6 +121,7 @@ export default function App() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
   const firstLoadRef = React.useRef(true);
 
   // Load from Sheets on mount
@@ -142,9 +144,13 @@ export default function App() {
           if (data.Accounts && data.Accounts.length > 0) setAccounts(data.Accounts);
           if (data.Settings && data.Settings.length > 0) setSettings(data.Settings[0]);
           if (data.Notifications && data.Notifications.length > 0) setNotificationsList(data.Notifications);
+        } else {
+          const errData = await res.json();
+          setSyncError(`Gagal memuat data: ${errData.error || 'Server error'}`);
         }
-      } catch (e) {
+      } catch (e: any) {
         console.error("Gagal sinkronisasi data awal:", e);
+        setSyncError(`Gagal memuat data: ${e.message}`);
       } finally {
         setIsLoading(false);
       }
@@ -162,8 +168,9 @@ export default function App() {
 
     const handler = setTimeout(async () => {
       setIsSyncing(true);
+      setSyncError(null);
       try {
-        await fetch('/api/sync', {
+        const res = await fetch('/api/sync', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -182,8 +189,14 @@ export default function App() {
             Notifications: notificationsList
           })
         });
-      } catch (e) {
+        
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || 'Server error');
+        }
+      } catch (e: any) {
         console.error("Gagal menyimpan ke spreadsheet:", e);
+        setSyncError(`Gagal menyimpan: ${e.message}`);
       } finally {
         setIsSyncing(false);
       }
@@ -781,6 +794,27 @@ export default function App() {
           >
             <div className="w-4 h-4 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
             <span className="text-sm font-medium text-indigo-900">Menyimpan ke Google Sheets...</span>
+          </motion.div>
+        )}
+        
+        {syncError && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="absolute bottom-6 right-6 bg-red-50 shadow-xl rounded-xl px-4 py-3 flex flex-col gap-1 border border-red-200 z-50 max-w-sm"
+          >
+            <div className="flex items-center gap-2 text-red-700 font-bold text-sm">
+              <ShieldAlert className="w-4 h-4" />
+              Kesalahan Sinkronisasi
+            </div>
+            <span className="text-xs font-medium text-red-600">{syncError}</span>
+            <button 
+              onClick={() => setSyncError(null)}
+              className="absolute top-2 right-2 text-red-400 hover:text-red-700"
+            >
+              <X className="w-3 h-3" />
+            </button>
           </motion.div>
         )}
       </AnimatePresence>

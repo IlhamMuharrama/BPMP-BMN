@@ -499,7 +499,7 @@ export default function DashboardView({
           <div className="bg-[#2563EB]/10 p-3 rounded-lg text-[#2563EB]">
             <BadgeDollarSign className="w-6 h-6" />
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0" style={{ width: '443.667px', height: '500.333px' }}>
             <span className="text-xs font-medium text-[#6B7280] block">Estimasi Nilai Total Persediaan</span>
             <span className="text-2xl font-bold text-[#2563EB] block mt-0.5">{formatRupiah(totalNilaiPersediaan)}</span>
             <span className="text-[10px] text-[#6B7280] font-medium">Berdasarkan estimasi harga pasar per kategori</span>
