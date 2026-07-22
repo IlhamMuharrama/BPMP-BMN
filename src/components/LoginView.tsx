@@ -440,7 +440,7 @@ export default function LoginView({ accounts, onLoginSuccess, onRegisterAccount 
                 💡 CARA MERESET KATA SANDI:
               </p>
               <ol className="list-decimal pl-4 space-y-1">
-                <li>Silakan hubungi Kepala Subbagian Umum selaku <strong>Administrator (M. Syarif, S.Sos.)</strong>.</li>
+                <li>Silakan hubungi Kepala Subbagian Umum selaku <strong>Administrator (Wahyudi, S.Si)</strong>.</li>
                 <li>Administrator dapat melihat dan mengganti sandi Anda secara langsung melalui panel <strong>Admin Control Center</strong>.</li>
                 <li>Gunakan tautan di bawah ini untuk mengirim pesan otomatis permohonan reset sandi via WhatsApp.</li>
               </ol>
@@ -449,7 +449,7 @@ export default function LoginView({ accounts, onLoginSuccess, onRegisterAccount 
             <div className="flex flex-col gap-2.5">
               <a
                 href={`https://wa.me/6281178901234?text=${encodeURIComponent(
-                  "Halo Bapak M. Syarif, saya lupa kata sandi akun saya di aplikasi SILAP BMN.\n\nMohon dibantu untuk mereset kata sandi akun saya atau menginformasikan kata sandi aktif saya dari dashboard Admin Control. Terima kasih!"
+                  "Halo Bapak Wahyudi, saya lupa kata sandi akun saya di aplikasi SILAP BMN.\n\nMohon dibantu untuk mereset kata sandi akun saya atau menginformasikan kata sandi aktif saya dari dashboard Admin Control. Terima kasih!"
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"

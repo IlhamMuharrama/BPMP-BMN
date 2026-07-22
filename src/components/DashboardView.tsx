@@ -56,21 +56,12 @@ export default function DashboardView({
 }: DashboardViewProps) {
   // Calculations
   const totalBarang = barang.length;
-  const stokAman = barang.filter(b => b.stokSekarang >= b.stokMin && b.stokSekarang > 0).length;
-  const stokMenipis = barang.filter(b => b.stokSekarang < b.stokMin && b.stokSekarang > 0).length;
-  const stokHabis = barang.filter(b => b.stokSekarang === 0).length;
+  const stokAman = barang.filter(b => Number(b.stokSekarang) >= Number(b.stokMin) && Number(b.stokSekarang) > 0).length;
+  const stokMenipis = barang.filter(b => Number(b.stokSekarang) < Number(b.stokMin) && Number(b.stokSekarang) > 0).length;
+  const stokHabis = barang.filter(b => Number(b.stokSekarang) === 0).length;
 
   // Approximate inventory value (mock average valuation of 125,000 IDR per unit of stock)
-  const totalStokUnit = barang.reduce((sum, item) => sum + item.stokSekarang, 0);
-  const totalNilaiPersediaan = barang.reduce((sum, item) => {
-    // Estimasi harga per unit berdasarkan kategori agar realistis
-    let hargaEst = 50000; // ATK
-    if (item.kategori.includes('Komputer')) hargaEst = 850000;
-    else if (item.kategori.includes('Sosialisasi')) hargaEst = 250000;
-    else if (item.kategori.includes('Konsumsi')) hargaEst = 35000;
-    else if (item.kategori.includes('Kebersihan')) hargaEst = 75000;
-    return sum + (item.stokSekarang * hargaEst);
-  }, 0);
+  const totalStokUnit = barang.reduce((sum, item) => sum + Number(item.stokSekarang), 0);
 
   // Format Rupiah helper
   const formatRupiah = (num: number) => {
@@ -495,18 +486,7 @@ export default function DashboardView({
       </div>
 
       {/* KPI Cards Row 2 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Card Value */}
-        <div className="bg-white p-5 rounded-xl border border-[#E5E7EB] shadow-sm flex items-center gap-4 col-span-1 lg:col-span-2">
-          <div className="bg-[#2563EB]/10 p-3 rounded-lg text-[#2563EB]">
-            <BadgeDollarSign className="w-6 h-6" />
-          </div>
-          <div className="min-w-0" style={{ width: '443.667px', height: '500.333px' }}>
-            <span className="text-xs font-medium text-[#6B7280] block">Estimasi Nilai Total Persediaan</span>
-            <span className="text-2xl font-bold text-[#2563EB] block mt-0.5">{formatRupiah(totalNilaiPersediaan)}</span>
-            <span className="text-[10px] text-[#6B7280] font-medium">Berdasarkan estimasi harga pasar per kategori</span>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
 
         {/* Card Transactions */}
         <div className="bg-white p-5 rounded-xl border border-[#E5E7EB] shadow-sm flex items-center gap-4">

@@ -17,10 +17,10 @@ export default function RiwayatView({ riwayat }: RiwayatViewProps) {
 
   const filteredRiwayat = riwayat.filter(item => {
     const matchesSearch =
-      item.namaBarang.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.barangId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.petugas.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.id.toLowerCase().includes(searchTerm.toLowerCase());
+      String(item.namaBarang || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(item.barangId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(item.petugas || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(item.id || '').toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesType =
       filterType === 'all' ? true : item.tipe.toLowerCase() === filterType.toLowerCase();

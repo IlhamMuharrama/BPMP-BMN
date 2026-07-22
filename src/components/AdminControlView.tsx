@@ -54,8 +54,8 @@ export default function AdminControlView({
   const activeOrRejectedAccounts = accounts.filter(a => a.status !== 'Pending');
   
   const totalItems = barangList.length;
-  const lowStockItems = barangList.filter(b => b.stokSekarang < b.stokMin).length;
-  const outOfStockItems = barangList.filter(b => b.stokSekarang === 0).length;
+  const lowStockItems = barangList.filter(b => Number(b.stokSekarang) < Number(b.stokMin)).length;
+  const outOfStockItems = barangList.filter(b => Number(b.stokSekarang) === 0).length;
 
   const totalInbound = riwayatList.filter(r => r.tipe === 'Masuk').length;
   const totalOutbound = riwayatList.filter(r => r.tipe === 'Keluar').length;
@@ -269,7 +269,7 @@ export default function AdminControlView({
                             </span>
                           </td>
                           <td className="p-3 text-center">
-                            {acc.username.toLowerCase() === 'admin' ? (
+                            {String(acc.username || '').toLowerCase() === 'admin' ? (
                               <span className="text-[10px] text-gray-400 italic">Sistem Utama</span>
                             ) : (
                               <button

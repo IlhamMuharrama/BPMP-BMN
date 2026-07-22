@@ -156,7 +156,7 @@ export const INDEX_HTML_CONTENT = `<!DOCTYPE html>
       <div class="p-3.5 bg-slate-950/60 rounded-2xl border border-slate-800 text-[11px] leading-relaxed text-slate-400 mb-6 text-left space-y-2">
         <p class="text-slate-200 font-bold">💡 CARA MERESET KATA SANDI:</p>
         <ol class="list-decimal pl-4 space-y-1">
-          <li>Silakan hubungi Kepala Subbagian Umum selaku <strong>Administrator (M. Syarif, S.Sos.)</strong>.</li>
+          <li>Silakan hubungi Kepala Subbagian Umum selaku <strong>Administrator (Wahyudi, S.Si)</strong>.</li>
           <li>Administrator dapat melihat dan mengganti sandi Anda secara langsung melalui panel <strong>Admin Control Center</strong>.</li>
           <li>Gunakan tautan di bawah ini untuk mengirim pesan otomatis permohonan reset sandi via WhatsApp.</li>
         </ol>
@@ -524,7 +524,7 @@ export const INDEX_HTML_CONTENT = `<!DOCTYPE html>
       ],
       barangKeluar: [],
       accounts: [
-        { username: "admin", nama: "M. Syarif, S.Sos.", nip: "197509121999031002", jabatan: "Kepala Subbagian Umum / Administrator", telepon: "081178901234", password: "admin", role: "Administrator", status: "Disetujui" },
+        { username: "admin", nama: "Wahyudi, S.Si", nip: "197509121999031002", jabatan: "Kepala Subbagian Umum / Administrator", telepon: "081178901234", password: "admin", role: "Administrator", status: "Disetujui" },
         { username: "petugas", nama: "Roni Setiawan", nip: "198804152014021003", jabatan: "Petugas BMN", telepon: "081271234567", password: "bmn", role: "Petugas BMN", status: "Disetujui" },
         { username: "budi_baru", nama: "Budi Budiman", nip: "199112022019031005", jabatan: "Petugas BMN Baru", telepon: "08981741680", password: "budi", role: "Petugas BMN", status: "Pending" }
       ]
@@ -603,7 +603,7 @@ export const INDEX_HTML_CONTENT = `<!DOCTYPE html>
     // --- FORGOT PASSWORD TRIGGER ---
     function showForgotPasswordModal() {
       const adminPhone = "6281178901234";
-      const text = "Halo Bapak M. Syarif, saya lupa kata sandi akun saya di aplikasi SILAP BMN.\\n\\nMohon dibantu untuk mereset kata sandi akun saya atau menginformasikan kata sandi aktif saya dari dashboard Admin Control. Terima kasih!";
+      const text = "Halo Bapak Wahyudi, saya lupa kata sandi akun saya di aplikasi SILAP BMN.\\n\\nMohon dibantu untuk mereset kata sandi akun saya atau menginformasikan kata sandi aktif saya dari dashboard Admin Control. Terima kasih!";
       const link = "https://wa.me/" + adminPhone + "?text=" + encodeURIComponent(text);
       
       document.getElementById("btn-wa-reset").href = link;
@@ -673,7 +673,7 @@ export const INDEX_HTML_CONTENT = `<!DOCTYPE html>
       document.getElementById("success-nip").innerText = newAcc.nip;
 
       const adminPhone = "6281178901234";
-      const text = "Halo Bapak M. Syarif (Kasubag Umum / Admin SILAP BMN Sumsel),\\n\\nsaya telah mengirimkan permohonan pendaftaran akun pegawai baru:\\n\\n- Nama: " + newAcc.nama + "\\n- NIP: " + newAcc.nip + "\\n- Jabatan: " + newAcc.jabatan + "\\n- Username: " + newAcc.username + "\\n- Telepon: " + newAcc.telepon + "\\n\\nMohon bantuannya untuk menyetujui akun saya melalui panel Admin Control Center. Terima kasih!";
+      const text = "Halo Bapak Wahyudi (Kasubag Umum / Admin SILAP BMN Sumsel),\\n\\nsaya telah mengirimkan permohonan pendaftaran akun pegawai baru:\\n\\n- Nama: " + newAcc.nama + "\\n- NIP: " + newAcc.nip + "\\n- Jabatan: " + newAcc.jabatan + "\\n- Username: " + newAcc.username + "\\n- Telepon: " + newAcc.telepon + "\\n\\nMohon bantuannya untuk menyetujui akun saya melalui panel Admin Control Center. Terima kasih!";
       const waLink = "https://wa.me/" + adminPhone + "?text=" + encodeURIComponent(text);
 
       document.getElementById("btn-wa-confirm").href = waLink;
@@ -707,7 +707,7 @@ export const INDEX_HTML_CONTENT = `<!DOCTYPE html>
         Swal.fire({ 
           icon: 'warning', 
           title: 'Akun Belum Disetujui', 
-          text: 'Status pendaftaran akun Anda masih menunggu persetujuan dari Administrator (M. Syarif, S.Sos.).' 
+          text: 'Status pendaftaran akun Anda masih menunggu persetujuan dari Administrator (Wahyudi, S.Si).' 
         });
         return;
       }

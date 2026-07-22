@@ -83,19 +83,22 @@ export default function BarangView({
   // Filtering
   const filteredBarang = barang.filter(item => {
     const matchesSearch =
-      item.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.lokasiRak.toLowerCase().includes(searchTerm.toLowerCase());
+      String(item.nama || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(item.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(item.lokasiRak || '').toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesCategory = selectedCategory ? item.kategori === selectedCategory : true;
 
     let matchesStock = true;
+    const stokSekarang = Number(item.stokSekarang) || 0;
+    const stokMin = Number(item.stokMin) || 0;
+    
     if (stockFilter === 'safe') {
-      matchesStock = item.stokSekarang >= item.stokMin && item.stokSekarang > 0;
+      matchesStock = stokSekarang >= stokMin && stokSekarang > 0;
     } else if (stockFilter === 'low') {
-      matchesStock = item.stokSekarang < item.stokMin && item.stokSekarang > 0;
+      matchesStock = stokSekarang < stokMin && stokSekarang > 0;
     } else if (stockFilter === 'empty') {
-      matchesStock = item.stokSekarang === 0;
+      matchesStock = stokSekarang === 0;
     }
 
     return matchesSearch && matchesCategory && matchesStock;

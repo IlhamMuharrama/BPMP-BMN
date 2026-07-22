@@ -134,7 +134,7 @@ export default function LaporanView({ barang, riwayat, instituteName }: LaporanV
                   Mengetahui,<br/>
                   <strong>Kepala Subbagian Umum</strong>
                   <br/><br/><br/><br/><br/>
-                  <u><strong>M. Syarif, S.Sos.</strong></u><br/>
+                  <u><strong>Wahyudi, S.Si</strong></u><br/>
                   NIP. 19740512 200112 1 002
                 </td>
               </tr>

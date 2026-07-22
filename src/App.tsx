@@ -59,7 +59,7 @@ import {
 const INITIAL_ACCOUNTS: UserAccount[] = [
   {
     username: 'admin',
-    nama: 'ILHAM MUHARRAMA',
+    nama: 'Wahyudi, S.Si',
     nip: '197509121999031002',
     jabatan: 'Kepala Subbagian Umum / Administrator',
     telepon: '081178901234',
@@ -111,6 +111,10 @@ export default function App() {
         const now = new Date().getTime();
         // 12 hours = 12 * 60 * 60 * 1000 = 43200000 ms
         if (now - loginTime < 43200000) {
+          const freshUser = INITIAL_ACCOUNTS.find(a => a.username === parsed.user.username);
+          if (freshUser) {
+             return freshUser;
+          }
           return parsed.user;
         } else {
           localStorage.removeItem('bpmp_bmn_session');
