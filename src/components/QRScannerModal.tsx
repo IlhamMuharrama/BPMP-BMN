@@ -125,37 +125,6 @@ export default function QRScannerModal({
     }
   };
 
-  // Safe simulation of QR Scan
-  const simulateScan = (barangId: string) => {
-    setErrorMessage('');
-    const matched = barangList.find(b => b.id === barangId);
-    if (matched) {
-      setScannedItem(matched);
-      setCameraState('success');
-
-      // Play sound
-      try {
-        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(1200, audioCtx.currentTime);
-        gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
-        oscillator.start();
-        oscillator.stop(audioCtx.currentTime + 0.1);
-      } catch (e) {}
-
-      stopScanner();
-
-      setTimeout(() => {
-        onScanSuccess(matched.id);
-        onClose();
-      }, 1200);
-    }
-  };
-
   useEffect(() => {
     if (isOpen) {
       startScanner();
@@ -250,29 +219,42 @@ export default function QRScannerModal({
             )}
           </div>
 
-          {/* SIMULATION PANEL (Extremely reliable fall back) */}
-          <div className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5 text-blue-500" /> Mode Simulasi Barcode / QR BMN
-              </span>
-              <span className="text-[9px] text-slate-400 italic">Klik item untuk mensimulasi scan</span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1 text-[11px] scrollbar-thin">
-              {barangList.map(b => (
-                <button
-                  key={b.id}
-                  onClick={() => simulateScan(b.id)}
-                  className="text-left px-2.5 py-1.5 bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-300 rounded-lg transition-all cursor-pointer flex flex-col justify-between"
-                >
-                  <span className="font-bold text-slate-900 truncate block w-full">{b.nama}</span>
-                  <div className="flex items-center justify-between w-full mt-1 text-[9px] text-slate-500">
-                    <span className="font-mono font-semibold">{b.id}</span>
-                    <span className="bg-slate-100 px-1 rounded text-[8px] font-bold">{b.lokasiRak}</span>
-                  </div>
-                </button>
-              ))}
+          {/* FALLBACK IMAGE UPLOAD */}
+          <div className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2 text-center">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+              Gagal Membuka Kamera?
+            </span>
+            <p className="text-[10px] text-slate-400 leading-tight">
+              Gunakan galeri atau aplikasi kamera bawaan HP Anda dengan memilih gambar QR Code.
+            </p>
+            <div className="relative inline-block w-full mt-2">
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  
+                  try {
+                    let instance = scannerInstance;
+                    if (!instance) {
+                      instance = new Html5Qrcode(qrId);
+                      setScannerInstance(instance);
+                    }
+                    const decodedText = await instance.scanFile(file, true);
+                    if (decodedText) {
+                      handleScannedCode(decodedText, instance);
+                    }
+                  } catch (err) {
+                    alert("Gagal membaca QR Code dari gambar yang dipilih. Pastikan gambar jelas.");
+                  }
+                }}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              />
+              <button className="w-full py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-bold rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-sm">
+                <Camera className="w-4 h-4" /> Buka Kamera HP / Galeri
+              </button>
             </div>
           </div>
         </div>

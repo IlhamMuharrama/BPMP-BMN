@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ShieldAlert, X } from 'lucide-react';
+import { ShieldAlert, X, Database, Cloud } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
 import DashboardView from './components/DashboardView';
@@ -59,7 +59,7 @@ import {
 const INITIAL_ACCOUNTS: UserAccount[] = [
   {
     username: 'admin',
-    nama: 'M. Syarif, S.Sos.',
+    nama: 'ILHAM MUHARRAMA',
     nip: '197509121999031002',
     jabatan: 'Kepala Subbagian Umum / Administrator',
     telepon: '081178901234',
@@ -102,7 +102,37 @@ export default function App() {
   });
 
   // Core Authentication states
-  const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
+  const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => {
+    try {
+      const stored = localStorage.getItem('bpmp_bmn_session');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const loginTime = new Date(parsed.timestamp).getTime();
+        const now = new Date().getTime();
+        // 12 hours = 12 * 60 * 60 * 1000 = 43200000 ms
+        if (now - loginTime < 43200000) {
+          return parsed.user;
+        } else {
+          localStorage.removeItem('bpmp_bmn_session');
+        }
+      }
+    } catch (e) {
+      console.error('Failed to parse session:', e);
+    }
+    return null;
+  });
+
+  const handleSetCurrentUser = (user: UserAccount | null) => {
+    setCurrentUser(user);
+    if (user) {
+      localStorage.setItem('bpmp_bmn_session', JSON.stringify({
+        user,
+        timestamp: new Date().toISOString()
+      }));
+    } else {
+      localStorage.removeItem('bpmp_bmn_session');
+    }
+  };
   const [accounts, setAccounts] = useState<UserAccount[]>(INITIAL_ACCOUNTS);
 
   // Core database states
@@ -556,10 +586,15 @@ export default function App() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-50 text-slate-500">
+      <div className="h-screen w-full flex items-center justify-center bg-slate-900 text-white">
         <div className="flex flex-col items-center">
-          <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
-          <p className="font-medium animate-pulse">Menghubungkan ke Google Spreadsheet...</p>
+          <div className="relative w-16 h-16 flex items-center justify-center mb-4">
+            <div className="absolute inset-0 border-4 border-indigo-500/30 rounded-full animate-ping"></div>
+            <div className="absolute inset-0 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+            <Database className="w-6 h-6 text-indigo-400 animate-pulse" />
+          </div>
+          <p className="font-bold text-lg animate-pulse tracking-wide text-indigo-100">Menghubungkan ke Database...</p>
+          <p className="text-xs text-indigo-300 mt-2 font-medium">Memuat profil dan data inventaris</p>
         </div>
       </div>
     );
@@ -570,7 +605,7 @@ export default function App() {
       <LoginView
         accounts={accounts}
         onLoginSuccess={(acc) => {
-          setCurrentUser(acc);
+          handleSetCurrentUser(acc);
           setActiveTab('dashboard');
           // Write login log
           const newLog: AuditLog = {
@@ -612,7 +647,7 @@ export default function App() {
           currentUser={currentUser}
           onLogout={() => {
             writeAuditLog('Logout', `Sesi diakhiri oleh ${currentUser.nama}`);
-            setCurrentUser(null);
+            handleSetCurrentUser(null);
           }}
           notifications={notificationsList}
           setNotifications={setNotificationsList}
@@ -787,13 +822,16 @@ export default function App() {
       <AnimatePresence>
         {isSyncing && (
           <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            className="absolute bottom-6 right-6 bg-white shadow-xl rounded-full px-4 py-2 flex items-center gap-3 border border-indigo-100 z-50"
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 50, scale: 0.9 }}
+            className="absolute bottom-6 right-6 bg-slate-900 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-2xl px-5 py-3 flex items-center gap-3 border border-slate-700/50 z-50 overflow-hidden"
           >
-            <div className="w-4 h-4 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
-            <span className="text-sm font-medium text-indigo-900">Menyimpan ke Google Sheets...</span>
+            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-blue-500/10 animate-pulse"></div>
+            <div className="relative flex items-center gap-3">
+              <Database className="w-5 h-5 text-indigo-400 animate-bounce" />
+              <span className="text-sm font-bold text-white tracking-wide">Menyimpan ke Database...</span>
+            </div>
           </motion.div>
         )}
         

@@ -88,7 +88,9 @@ export default function DashboardView({
   // Categorize for charts
   const categoryCounts: { [key: string]: number } = {};
   barang.forEach(b => {
-    categoryCounts[b.kategori] = (categoryCounts[b.kategori] || 0) + b.stokSekarang;
+    const kat = b.kategori || 'Tanpa Kategori';
+    const stok = Number(b.stokSekarang) || 0;
+    categoryCounts[kat] = (categoryCounts[kat] || 0) + stok;
   });
 
   const chartCategories = Object.keys(categoryCounts).map(cat => ({
@@ -96,7 +98,7 @@ export default function DashboardView({
     value: categoryCounts[cat]
   })).sort((a, b) => b.value - a.value);
 
-  const maxCatValue = Math.max(...chartCategories.map(c => c.value), 1);
+  const maxCatValue = Math.max(...chartCategories.map(c => c.value), 1) || 1;
 
   // Dashboard QR scan states
   const [isScannerOpen, setIsScannerOpen] = useState(false);

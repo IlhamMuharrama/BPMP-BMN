@@ -21,7 +21,7 @@ export const INITIAL_SUPPLIER: Supplier[] = [
 ];
 
 export const INITIAL_UNIT: Unit[] = [
-  { id: 'UNT-001', nama: 'Subbagian Umum', penanggungJawab: 'Bpk. M. Syarif, S.Sos.', keterangan: 'Urusan persuratan, rumah tangga, kepegawaian, dan perlengkapan' },
+  { id: 'UNT-001', nama: 'Subbagian Umum', penanggungJawab: 'ILHAM MUHARRAMA', keterangan: 'Urusan persuratan, rumah tangga, kepegawaian, dan perlengkapan' },
   { id: 'UNT-002', nama: 'Fasilitasi Peningkatan Mutu (FPMP)', penanggungJawab: 'Ibu Dr. Hartati, M.Pd.', keterangan: 'Program penjaminan mutu pendidikan PAUD, SD, SMP, SMA' },
   { id: 'UNT-003', nama: 'Seksi Pemetaan & Supervisi', penanggungJawab: 'Bpk. Ir. Gunawan, M.Si.', keterangan: 'Urusan analisis pemetaan mutu dan pengawasan sekolah' },
   { id: 'UNT-004', nama: 'Seksi Kemitraan & Kerja Sama', penanggungJawab: 'Ibu Dian Safitri, S.E.', keterangan: 'Urusan kerja sama dengan Pemerintah Daerah dan dinas terkait' }
@@ -327,7 +327,7 @@ export const DEFAULT_SETTINGS: Settings = {
 
 export const INITIAL_PEGAWAI: Pegawai[] = [
   { id: 'PGW-001', nama: 'Roni Setiawan', jabatan: 'Petugas BMN', nip: '198804152014021003', telepon: '0812-7123-4567' },
-  { id: 'PGW-002', nama: 'M. Syarif, S.Sos.', jabatan: 'Kepala Subbagian Umum', nip: '197509121999031002', telepon: '0811-7890-1234' },
+  { id: 'PGW-002', nama: 'ILHAM MUHARRAMA', jabatan: 'Kepala Subbagian Umum', nip: '197509121999031002', telepon: '0811-7890-1234' },
   { id: 'PGW-003', nama: 'Budi Hermawan', jabatan: 'Staf BMN', nip: '199112022019031005', telepon: '0821-8899-7711' },
   { id: 'PGW-004', nama: 'Drs. H. Sunardi, M.Pd.', jabatan: 'Pimpinan / Kepala BPMP', nip: '196703081992031003', telepon: '0812-7345-9988' },
   { id: 'PGW-005', nama: 'Siti Aminah, S.E.', jabatan: 'Staf Administrasi BMN', nip: '199305142020012003', telepon: '0813-6677-8899' },
