@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Kategori, Supplier, Unit, Satuan, Barang, BarangMasuk, BarangKeluar, Riwayat, AuditLog, SystemNotification, Settings, Pegawai } from './types';
+import { Kategori, Supplier, Unit, Satuan, Barang, BarangMasuk, BarangKeluar, Riwayat, AuditLog, SystemNotification, Settings, Pegawai, DriveFileItem } from './types';
 
 export const INITIAL_KATEGORI: Kategori[] = [
   { id: 'KAT-001', nama: 'Alat Tulis Kantor (ATK)', deskripsi: 'Kebutuhan alat tulis dan kertas kantor sehari-hari' },
@@ -332,4 +332,52 @@ export const INITIAL_PEGAWAI: Pegawai[] = [
   { id: 'PGW-004', nama: 'Drs. H. Sunardi, M.Pd.', jabatan: 'Pimpinan / Kepala BPMP', nip: '196703081992031003', telepon: '0812-7345-9988' },
   { id: 'PGW-005', nama: 'Siti Aminah, S.E.', jabatan: 'Staf Administrasi BMN', nip: '199305142020012003', telepon: '0813-6677-8899' },
   { id: 'PGW-006', nama: 'Heri Prasetyo', jabatan: 'Staf Inventarisasi BMN', nip: '198911102016031001', telepon: '0812-5544-3322' }
+];
+
+export const INITIAL_DRIVE_FILES: DriveFileItem[] = [
+  {
+    id: 'DRV-001',
+    name: 'Faktur_Tekno_M170_signed.pdf',
+    folder: 'Reports',
+    size: '245 KB',
+    type: 'application/pdf',
+    uploadedAt: '2026-07-10T09:00:00Z',
+    uploadedBy: 'Roni Setiawan (Petugas BMN)'
+  },
+  {
+    id: 'DRV-002',
+    name: 'DO_ATK_Kertas_A4_signed.pdf',
+    folder: 'Reports',
+    size: '180 KB',
+    type: 'application/pdf',
+    uploadedAt: '2026-07-15T10:30:00Z',
+    uploadedBy: 'Roni Setiawan (Petugas BMN)'
+  },
+  {
+    id: 'DRV-003',
+    name: 'Inv_Boga_Wahana_signed.pdf',
+    folder: 'Reports',
+    size: '310 KB',
+    type: 'application/pdf',
+    uploadedAt: '2026-07-20T10:00:00Z',
+    uploadedBy: 'Roni Setiawan (Petugas BMN)'
+  },
+  {
+    id: 'DRV-004',
+    name: 'QR_Code_Katalog_BMN_All.zip',
+    folder: 'QRCode',
+    size: '1.2 MB',
+    type: 'application/zip',
+    uploadedAt: '2026-07-20T12:00:00Z',
+    uploadedBy: 'System Backup'
+  },
+  {
+    id: 'DRV-005',
+    name: 'Database_Backup_20260720.json',
+    folder: 'Backup',
+    size: '512 KB',
+    type: 'application/json',
+    uploadedAt: '2026-07-20T18:00:00Z',
+    uploadedBy: 'System Auto-Backup'
+  }
 ];

@@ -41,7 +41,35 @@ export default function TransaksiMasukView({
 
   // Drag and drop / upload simulation
   const [uploadedFile, setUploadedFile] = useState<string>('');
+  const [uploadedFileData, setUploadedFileData] = useState<string>('');
+  const [isUploadingDrive, setIsUploadingDrive] = useState<boolean>(false);
   const [isDragging, setIsDragging] = useState(false);
+
+  const processSelectedFile = (file: File) => {
+    setUploadedFile(file.name);
+    setIsUploadingDrive(true);
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64 = e.target?.result as string;
+      setUploadedFileData(base64 || '');
+      setIsUploadingDrive(false);
+
+      // Trigger server drive upload in background
+      fetch('/api/drive/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filename: file.name,
+          fileData: base64
+        })
+      }).catch(err => console.log('Drive background upload handled locally:', err));
+    };
+    reader.onerror = () => {
+      setIsUploadingDrive(false);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const isReadOnly = currentUserRole === 'Viewer' || currentUserRole === 'Pimpinan';
 
@@ -85,13 +113,13 @@ export default function TransaksiMasukView({
     e.preventDefault();
     setIsDragging(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      setUploadedFile(e.dataTransfer.files[0].name);
+      processSelectedFile(e.dataTransfer.files[0]);
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setUploadedFile(e.target.files[0].name);
+      processSelectedFile(e.target.files[0]);
     }
   };
 
@@ -107,6 +135,7 @@ export default function TransaksiMasukView({
       supplier: selectedSupplier,
       petugas,
       fileDokumen: uploadedFile || 'Dokumen_Penerimaan_Fisik_signed.pdf',
+      fileData: uploadedFileData,
       catatan
     });
 
@@ -114,6 +143,7 @@ export default function TransaksiMasukView({
     setJumlah(10);
     setCatatan('');
     setUploadedFile('');
+    setUploadedFileData('');
     if (clearQuickAdd) clearQuickAdd();
   };
 

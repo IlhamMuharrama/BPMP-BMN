@@ -35,30 +35,48 @@ interface AdminControlViewProps {
 }
 
 export default function AdminControlView({
-  accounts,
+  accounts = [],
   onApproveAccount,
   onRejectAccount,
   onDeleteAccount,
   onUpdatePassword,
-  barangList,
-  riwayatList,
-  settings
+  barangList = [],
+  riwayatList = [],
+  settings = {}
 }: AdminControlViewProps) {
   const [activeSubTab, setActiveSubTab] = useState<'akun' | 'statistik' | 'integrasi'>('akun');
   const [editingPasswordUser, setEditingPasswordUser] = useState<string | null>(null);
   const [newPasswordVal, setNewPasswordVal] = useState<string>('');
 
-  // Stats calculation
-  const pendingAccounts = accounts.filter(a => a.status === 'Pending');
-  const approvedAccounts = accounts.filter(a => a.status === 'Disetujui');
-  const activeOrRejectedAccounts = accounts.filter(a => a.status !== 'Pending');
-  
-  const totalItems = barangList.length;
-  const lowStockItems = barangList.filter(b => Number(b.stokSekarang) < Number(b.stokMin)).length;
-  const outOfStockItems = barangList.filter(b => Number(b.stokSekarang) === 0).length;
+  // Helper function to safely format dates without throwing RangeError
+  const formatDateSafe = (dateStr?: string) => {
+    if (!dateStr) return '-';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return '-';
+      return d.toLocaleDateString('id-ID');
+    } catch (e) {
+      return '-';
+    }
+  };
 
-  const totalInbound = riwayatList.filter(r => r.tipe === 'Masuk').length;
-  const totalOutbound = riwayatList.filter(r => r.tipe === 'Keluar').length;
+  // Safe accounts array
+  const safeAccounts = Array.isArray(accounts) ? accounts : [];
+  const safeBarangList = Array.isArray(barangList) ? barangList : [];
+  const safeRiwayatList = Array.isArray(riwayatList) ? riwayatList : [];
+  const safeSettings = settings || {};
+
+  // Stats calculation
+  const pendingAccounts = safeAccounts.filter(a => a && a.status === 'Pending');
+  const approvedAccounts = safeAccounts.filter(a => a && a.status === 'Disetujui');
+  const activeOrRejectedAccounts = safeAccounts.filter(a => a && a.status !== 'Pending');
+  
+  const totalItems = safeBarangList.length;
+  const lowStockItems = safeBarangList.filter(b => b && Number(b.stokSekarang || 0) < Number(b.stokMin || 0)).length;
+  const outOfStockItems = safeBarangList.filter(b => b && Number(b.stokSekarang || 0) === 0).length;
+
+  const totalInbound = safeRiwayatList.filter(r => r && r.tipe === 'Masuk').length;
+  const totalOutbound = safeRiwayatList.filter(r => r && r.tipe === 'Keluar').length;
 
   return (
     <div className="space-y-6">
@@ -112,7 +130,7 @@ export default function AdminControlView({
                   <UserCheck className="w-4 h-4 text-blue-500" />
                   Konfirmasi Pendaftaran Akun ({pendingAccounts.length} Menunggu Tindakan)
                 </h3>
-                <span className="text-xs text-gray-400 font-medium">Total Akun: {accounts.length}</span>
+                <span className="text-xs text-gray-400 font-medium">Total Akun: {safeAccounts.length}</span>
               </div>
 
               {pendingAccounts.length > 0 ? (
@@ -124,7 +142,7 @@ export default function AdminControlView({
                           <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full flex items-center gap-1">
                             <Clock className="w-3 h-3" /> Menunggu Konfirmasi
                           </span>
-                          <span className="text-[10px] text-gray-400 font-mono">Daftar: {new Date(acc.registeredAt).toLocaleDateString('id-ID')}</span>
+                          <span className="text-[10px] text-gray-400 font-mono">Daftar: {formatDateSafe(acc.registeredAt)}</span>
                         </div>
 
                         <div className="space-y-1">
@@ -136,13 +154,13 @@ export default function AdminControlView({
                         <div className="bg-white/80 border border-amber-100/60 p-2.5 rounded-xl space-y-1.5 text-[11px] text-gray-600">
                           <div className="flex justify-between">
                             <span className="text-gray-400">NIP Pegawai:</span>
-                            <span className="font-bold text-gray-900">{acc.nip}</span>
+                            <span className="font-bold text-gray-900">{acc.nip || '-'}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-400">No Telepon/WA:</span>
                             <span className="font-bold text-blue-600 hover:underline">
-                              <a href={`https://wa.me/${acc.telepon.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer">
-                                {acc.telepon} 💬
+                              <a href={`https://wa.me/${(acc.telepon || '').replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer">
+                                {acc.telepon || '-'} 💬
                               </a>
                             </span>
                           </div>
@@ -326,7 +344,7 @@ export default function AdminControlView({
 
                 <div className="bg-blue-50 p-4 border border-blue-200 rounded-xl space-y-1">
                   <span className="text-blue-800 font-bold block uppercase text-[10px]">Mutasi Terlacak</span>
-                  <span className="text-2xl font-extrabold text-blue-900 block">{riwayatList.length}</span>
+                  <span className="text-2xl font-extrabold text-blue-900 block">{safeRiwayatList.length}</span>
                   <span className="text-[10px] text-blue-700 block">Inbound: {totalInbound} | Outbound: {totalOutbound}</span>
                 </div>
               </div>
@@ -335,8 +353,8 @@ export default function AdminControlView({
               <div className="space-y-3 pt-4 border-t border-gray-100">
                 <h4 className="font-bold text-gray-900 text-sm">Visualisasi Singkat & 5 Riwayat Terakhir</h4>
                 <div className="bg-slate-50 border border-gray-200 p-4 rounded-xl space-y-3">
-                  {riwayatList.slice(0, 5).map(r => (
-                    <div key={r.id} className="flex justify-between items-center bg-white p-3 border border-gray-100 rounded-lg text-xs font-semibold">
+                  {safeRiwayatList.slice(0, 5).map(r => (
+                    <div key={r.id || Math.random()} className="flex justify-between items-center bg-white p-3 border border-gray-100 rounded-lg text-xs font-semibold">
                       <div className="space-y-1">
                         <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-bold ${
                           r.tipe === 'Masuk' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
@@ -344,7 +362,7 @@ export default function AdminControlView({
                           {r.tipe}
                         </span>
                         <h5 className="font-bold text-gray-900">{r.namaBarang}</h5>
-                        <p className="text-[10px] text-gray-400">Petugas: {r.petugas} • {new Date(r.tanggal).toLocaleDateString('id-ID')}</p>
+                        <p className="text-[10px] text-gray-400">Petugas: {r.petugas || '-'} • {formatDateSafe(r.tanggal)}</p>
                       </div>
                       <span className={`font-extrabold text-sm ${r.tipe === 'Masuk' ? 'text-green-600' : 'text-red-600'}`}>
                         {r.tipe === 'Masuk' ? '+' : '-'}{r.jumlah}
@@ -382,7 +400,7 @@ export default function AdminControlView({
                     <input 
                       type="text" 
                       disabled
-                      value={settings.spreadsheetId} 
+                      value={safeSettings.spreadsheetId || '-'} 
                       className="w-full px-2.5 py-1.5 bg-slate-50 border border-gray-200 rounded-lg text-gray-500 font-mono text-[10px]"
                     />
                   </div>
@@ -395,13 +413,13 @@ export default function AdminControlView({
                   <div className="space-y-1 text-xs">
                     <span className="text-gray-400 block">ID Folder QR Code:</span>
                     <span className="font-mono bg-slate-50 border border-gray-200 px-2 py-1 rounded block text-[10px] text-gray-500 truncate">
-                      {settings.folderQrId}
+                      {safeSettings.folderQrId || '-'}
                     </span>
                   </div>
                   <div className="space-y-1 text-xs">
                     <span className="text-gray-400 block">ID Folder Backup Laporan:</span>
                     <span className="font-mono bg-slate-50 border border-gray-200 px-2 py-1 rounded block text-[10px] text-gray-500 truncate">
-                      {settings.folderReportsId}
+                      {safeSettings.folderReportsId || '-'}
                     </span>
                   </div>
                 </div>

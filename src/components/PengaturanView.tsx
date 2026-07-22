@@ -4,25 +4,32 @@
  */
 
 import React, { useState } from 'react';
-import { Settings as SettingsIcon, Save, Database, Folder, RefreshCw, Trash2, ShieldCheck, Check } from 'lucide-react';
-import { Settings } from '../types';
+import { Settings as SettingsIcon, Save, Database, Folder, RefreshCw, Trash2, ShieldCheck, Check, HardDrive, FileText, Download, Eye, ExternalLink, CloudUpload } from 'lucide-react';
+import { Settings, DriveFileItem } from '../types';
 
 interface PengaturanViewProps {
   settings: Settings;
   onSaveSettings: (s: Settings) => void;
   onResetDatabase: () => void;
   onSimulateBackup: () => void;
+  driveFiles?: DriveFileItem[];
 }
 
 export default function PengaturanView({
   settings,
   onSaveSettings,
   onResetDatabase,
-  onSimulateBackup
+  onSimulateBackup,
+  driveFiles = []
 }: PengaturanViewProps) {
   const [formData, setFormData] = useState<Settings>({ ...settings });
   const [showSavedToast, setShowSavedToast] = useState(false);
   const [isBackupRunning, setIsBackupRunning] = useState(false);
+  const [activeDriveFolder, setActiveDriveFolder] = useState<'Reports' | 'QRCode' | 'Images' | 'Backup'>('Reports');
+  const [selectedPreviewFile, setSelectedPreviewFile] = useState<DriveFileItem | null>(null);
+
+  const safeDriveFiles = Array.isArray(driveFiles) ? driveFiles : [];
+  const filteredFiles = safeDriveFiles.filter(f => f.folder === activeDriveFolder);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -192,6 +199,114 @@ export default function PengaturanView({
           </button>
         </div>
       </form>
+
+      {/* Google Drive Cloud Storage Explorer */}
+      <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-slate-50">
+          <div className="flex items-center gap-2">
+            <HardDrive className="w-4.5 h-4.5 text-blue-600" />
+            <div>
+              <h3 className="font-bold text-gray-900 text-sm">Penyimpanan Cloud Google Drive</h3>
+              <p className="text-[10px] text-gray-500 font-medium">Monitoring berkas Surat Jalan, QR Code, dan Backup Terintegrasi</p>
+            </div>
+          </div>
+          <span className="text-[10px] bg-green-100 text-green-800 font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+            <Check className="w-3 h-3 stroke-[3]" /> Drive Active
+          </span>
+        </div>
+
+        <div className="p-5 space-y-4">
+          {/* Folder Selector Tabs */}
+          <div className="flex flex-wrap gap-2 border-b border-gray-100 pb-3">
+            <button
+              type="button"
+              onClick={() => setActiveDriveFolder('Reports')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                activeDriveFolder === 'Reports' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              <Folder className="w-3.5 h-3.5" /> Reports / Surat Jalan ({safeDriveFiles.filter(f => f.folder === 'Reports').length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveDriveFolder('QRCode')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                activeDriveFolder === 'QRCode' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              <Folder className="w-3.5 h-3.5" /> Folder QR Code ({safeDriveFiles.filter(f => f.folder === 'QRCode').length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveDriveFolder('Backup')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                activeDriveFolder === 'Backup' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              <Folder className="w-3.5 h-3.5" /> Folder Backup ({safeDriveFiles.filter(f => f.folder === 'Backup').length})
+            </button>
+          </div>
+
+          {/* File List in Folder */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-[11px] text-gray-500 font-bold px-1">
+              <span>Nama Berkas & Dokumen</span>
+              <span>Ukuran & Pengunggah</span>
+            </div>
+
+            {filteredFiles.length === 0 ? (
+              <div className="p-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200 text-slate-400 space-y-2">
+                <CloudUpload className="w-8 h-8 text-slate-300 mx-auto" />
+                <p className="text-xs font-semibold">Folder Drive Kosong</p>
+                <p className="text-[10px]">Unggah Surat Jalan atau Faktur di menu Barang Masuk untuk otomatis menyimpan file ke folder ini.</p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                {filteredFiles.map(file => (
+                  <div key={file.id} className="p-3 bg-slate-50/70 border border-slate-200 rounded-xl flex items-center justify-between hover:bg-blue-50/50 transition-all">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <FileText className="w-5 h-5 text-red-500 flex-shrink-0" />
+                      <div className="min-w-0">
+                        <span className="font-bold text-slate-900 text-xs block truncate">{file.name}</span>
+                        <span className="text-[10px] text-slate-400 font-mono block">
+                          Disimpan: {new Date(file.uploadedAt).toLocaleDateString('id-ID')}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <div className="text-right hidden sm:block">
+                        <span className="font-mono text-[10px] text-slate-600 font-bold block">{file.size}</span>
+                        <span className="text-[9px] text-slate-400 block">{file.uploadedBy}</span>
+                      </div>
+
+                      <div className="flex gap-1">
+                        {file.dataUrl ? (
+                          <a
+                            href={file.dataUrl}
+                            download={file.name}
+                            className="p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                          >
+                            <Download className="w-3.5 h-3.5" /> Unduh
+                          </a>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => alert(`Membuka simulasi berkas Google Drive: ${file.name}`)}
+                            className="p-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                          >
+                            <Eye className="w-3.5 h-3.5" /> Preview
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* Advanced utilities: backup, reset */}
       <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 space-y-4">

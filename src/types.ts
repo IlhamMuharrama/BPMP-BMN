@@ -56,6 +56,7 @@ export interface BarangMasuk {
   supplier: string;
   petugas: string;
   fileDokumen: string; // Filename or Drive URL
+  fileData?: string; // Base64 or Object URL of uploaded document
   catatan: string;
 }
 
@@ -69,7 +70,20 @@ export interface BarangKeluar {
   petugas: string;
   keperluan: string;
   statusPersetujuan: 'Pending' | 'Disetujui' | 'Ditolak';
+  fileDokumen?: string;
+  fileData?: string;
   catatan: string;
+}
+
+export interface DriveFileItem {
+  id: string;
+  name: string;
+  folder: 'Reports' | 'Images' | 'QRCode' | 'Backup';
+  size: string;
+  type: string;
+  uploadedAt: string;
+  uploadedBy: string;
+  dataUrl?: string;
 }
 
 export interface Riwayat {

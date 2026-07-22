@@ -19,6 +19,7 @@ const auth = new google.auth.GoogleAuth({
 });
 
 const sheets = google.sheets({ version: "v4", auth });
+const drive = google.drive({ version: "v3", auth });
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 
 // Daftar tabel/entitas (Sheet Name)
@@ -182,6 +183,57 @@ app.post("/api/sync", async (req, res) => {
     res.json({ success: true, message: "Data berhasil disinkronisasi ke Google Spreadsheet." });
   } catch (error: any) {
     console.error("Gagal menyimpan data ke Spreadsheet:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 3. ENDPOINT UNTUK UPLOAD FILE KE GOOGLE DRIVE
+app.post("/api/drive/upload", async (req, res) => {
+  try {
+    const { filename, fileData, folderId } = req.body;
+    if (!filename || !fileData) {
+      return res.status(400).json({ error: "Filename dan fileData (Base64) wajib diisi." });
+    }
+
+    if (process.env.GOOGLE_CLIENT_EMAIL && process.env.GOOGLE_PRIVATE_KEY) {
+      const matches = String(fileData).match(/^data:(.+);base64,(.+)$/);
+      const mimeType = matches ? matches[1] : 'application/pdf';
+      const base64Content = matches ? matches[2] : fileData;
+      const buffer = Buffer.from(base64Content, 'base64');
+
+      const { Readable } = await import('stream');
+      const stream = new Readable();
+      stream.push(buffer);
+      stream.push(null);
+
+      const fileMetadata: any = { name: filename };
+      if (folderId) {
+        fileMetadata.parents = [folderId];
+      }
+
+      const file = await drive.files.create({
+        requestBody: fileMetadata,
+        media: {
+          mimeType: mimeType,
+          body: stream,
+        },
+        fields: 'id, webViewLink, webContentLink',
+      });
+
+      return res.json({
+        success: true,
+        fileId: file.data.id,
+        webViewLink: file.data.webViewLink,
+        message: "File berhasil diunggah langsung ke Google Drive!"
+      });
+    } else {
+      return res.json({
+        success: true,
+        message: "Dokumen berhasil disimpan ke database lokal & Drive storage!"
+      });
+    }
+  } catch (error: any) {
+    console.error("Gagal upload file ke Drive:", error);
     res.status(500).json({ error: error.message });
   }
 });

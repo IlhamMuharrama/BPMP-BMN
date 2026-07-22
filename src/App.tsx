@@ -36,7 +36,8 @@ import {
   INITIAL_AUDIT_LOG,
   INITIAL_NOTIFICATION,
   DEFAULT_SETTINGS,
-  INITIAL_PEGAWAI
+  INITIAL_PEGAWAI,
+  INITIAL_DRIVE_FILES
 } from './data';
 
 import {
@@ -53,7 +54,8 @@ import {
   Settings,
   ActiveTab,
   Pegawai,
-  UserAccount
+  UserAccount,
+  DriveFileItem
 } from './types';
 
 const INITIAL_ACCOUNTS: UserAccount[] = [
@@ -152,6 +154,7 @@ export default function App() {
   const [auditLogsList, setAuditLogsList] = useState<AuditLog[]>(INITIAL_AUDIT_LOG);
   const [notificationsList, setNotificationsList] = useState<SystemNotification[]>(INITIAL_NOTIFICATION);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
+  const [driveFiles, setDriveFiles] = useState<DriveFileItem[]>(INITIAL_DRIVE_FILES);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -399,7 +402,22 @@ export default function App() {
       prev.map(b => (b.id === trans.barangId ? { ...b, stokSekarang: b.stokSekarang + trans.jumlah } : b))
     );
 
-    // 3. Log mutation timeline
+    // 3. Save uploaded Surat Jalan document to Drive Storage
+    if (trans.fileDokumen) {
+      const newDriveFile: DriveFileItem = {
+        id: `DRV-${Date.now()}`,
+        name: trans.fileDokumen,
+        folder: 'Reports',
+        size: trans.fileData ? `${Math.round((trans.fileData.length * 3) / 4 / 1024)} KB` : '185 KB',
+        type: 'application/pdf',
+        uploadedAt: timestamp,
+        uploadedBy: trans.petugas || 'Petugas BMN',
+        dataUrl: trans.fileData
+      };
+      setDriveFiles(prev => [newDriveFile, ...prev]);
+    }
+
+    // 4. Log mutation timeline
     const newRiwayat: Riwayat = {
       id: newId,
       tanggal: timestamp,
@@ -788,34 +806,55 @@ export default function App() {
                   onSaveSettings={handleSaveSettings}
                   onResetDatabase={handleResetDatabase}
                   onSimulateBackup={handleSimulateBackup}
+                  driveFiles={driveFiles}
                 />
               )}
 
               {activeTab === 'audit_log' && <AuditLogView logs={auditLogsList} onClearLogs={() => setAuditLogsList([])} />}
 
-              {activeTab === 'admin_control' && currentUser?.role === 'Administrator' && (
-                <AdminControlView
-                  accounts={accounts}
-                  barangList={barangList}
-                  riwayatList={riwayatList}
-                  settings={settings}
-                  onApproveAccount={(username) => {
-                    setAccounts(prev => prev.map(acc => acc.username === username ? { ...acc, status: 'Disetujui' } : acc));
-                    writeAuditLog('Konfirmasi Akun', `Menyetujui pembuatan akun pegawai: ${username}`);
-                  }}
-                  onRejectAccount={(username) => {
-                    setAccounts(prev => prev.map(acc => acc.username === username ? { ...acc, status: 'Ditolak' } : acc));
-                    writeAuditLog('Penolakan Akun', `Menolak pendaftaran akun pegawai: ${username}`);
-                  }}
-                  onDeleteAccount={(username) => {
-                    setAccounts(prev => prev.filter(acc => acc.username !== username));
-                    writeAuditLog('Hapus Akun', `Menghapus pendaftaran akun pegawai: ${username}`);
-                  }}
-                  onUpdatePassword={(username, newPassword) => {
-                    setAccounts(prev => prev.map(acc => acc.username === username ? { ...acc, password: newPassword } : acc));
-                    writeAuditLog('Ubah Sandi', `Mengubah kata sandi untuk pegawai: ${username}`);
-                  }}
-                />
+              {activeTab === 'admin_control' && (
+                (currentUser?.role === 'Administrator' || currentUser?.username === 'admin') ? (
+                  <AdminControlView
+                    accounts={accounts}
+                    barangList={barangList}
+                    riwayatList={riwayatList}
+                    settings={settings}
+                    onApproveAccount={(username) => {
+                      setAccounts(prev => prev.map(acc => acc.username === username ? { ...acc, status: 'Disetujui' } : acc));
+                      writeAuditLog('Konfirmasi Akun', `Menyetujui pembuatan akun pegawai: ${username}`);
+                    }}
+                    onRejectAccount={(username) => {
+                      setAccounts(prev => prev.map(acc => acc.username === username ? { ...acc, status: 'Ditolak' } : acc));
+                      writeAuditLog('Penolakan Akun', `Menolak pendaftaran akun pegawai: ${username}`);
+                    }}
+                    onDeleteAccount={(username) => {
+                      setAccounts(prev => prev.filter(acc => acc.username !== username));
+                      writeAuditLog('Hapus Akun', `Menghapus pendaftaran akun pegawai: ${username}`);
+                    }}
+                    onUpdatePassword={(username, newPassword) => {
+                      setAccounts(prev => prev.map(acc => acc.username === username ? { ...acc, password: newPassword } : acc));
+                      writeAuditLog('Ubah Sandi', `Mengubah kata sandi untuk pegawai: ${username}`);
+                    }}
+                  />
+                ) : (
+                  <div className="bg-white p-8 border border-red-200 rounded-2xl shadow-sm text-center space-y-4 max-w-lg mx-auto my-12">
+                    <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto">
+                      <ShieldAlert className="w-8 h-8 text-red-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900">Akses Khusus Administrator</h3>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Halaman Admin Control Center hanya dapat diakses oleh akun dengan otorisasi Administrator (admin).
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setCurrentUser(null)}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs cursor-pointer transition-colors"
+                    >
+                      Login Sebagai Admin
+                    </button>
+                  </div>
+                )
               )}
             </motion.div>
           </AnimatePresence>
