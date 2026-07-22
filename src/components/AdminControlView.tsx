@@ -135,58 +135,67 @@ export default function AdminControlView({
 
               {pendingAccounts.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {pendingAccounts.map(acc => (
-                    <div key={acc.username} className="bg-amber-50/40 border border-amber-200 rounded-xl p-4 flex flex-col justify-between shadow-xs">
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-start">
-                          <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                            <Clock className="w-3 h-3" /> Menunggu Konfirmasi
-                          </span>
-                          <span className="text-[10px] text-gray-400 font-mono">Daftar: {formatDateSafe(acc.registeredAt)}</span>
-                        </div>
+                  {pendingAccounts.map((acc, idx) => {
+                    const usernameStr = String(acc?.username || `pending-${idx}`);
+                    const namaStr = String(acc?.nama || 'Tanpa Nama');
+                    const jabatanStr = String(acc?.jabatan || '-');
+                    const nipStr = String(acc?.nip || '-');
+                    const teleponStr = String(acc?.telepon || '-');
+                    const regAtStr = String(acc?.registeredAt || '');
 
-                        <div className="space-y-1">
-                          <h4 className="font-bold text-gray-900 text-sm">{acc.nama}</h4>
-                          <p className="text-gray-500 font-semibold">{acc.jabatan}</p>
-                        </div>
-
-                        {/* Detailed information filled by creator */}
-                        <div className="bg-white/80 border border-amber-100/60 p-2.5 rounded-xl space-y-1.5 text-[11px] text-gray-600">
-                          <div className="flex justify-between">
-                            <span className="text-gray-400">NIP Pegawai:</span>
-                            <span className="font-bold text-gray-900">{acc.nip || '-'}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-400">No Telepon/WA:</span>
-                            <span className="font-bold text-blue-600 hover:underline">
-                              <a href={`https://wa.me/${(acc.telepon || '').replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer">
-                                {acc.telepon || '-'} 💬
-                              </a>
+                    return (
+                      <div key={usernameStr} className="bg-amber-50/40 border border-amber-200 rounded-xl p-4 flex flex-col justify-between shadow-xs">
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-start">
+                            <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                              <Clock className="w-3 h-3" /> Menunggu Konfirmasi
                             </span>
+                            <span className="text-[10px] text-gray-400 font-mono">Daftar: {formatDateSafe(regAtStr)}</span>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-400">Username / Email:</span>
-                            <span className="font-mono font-semibold text-gray-800">{acc.username}</span>
+
+                          <div className="space-y-1">
+                            <h4 className="font-bold text-gray-900 text-sm">{namaStr}</h4>
+                            <p className="text-gray-500 font-semibold">{jabatanStr}</p>
+                          </div>
+
+                          {/* Detailed information filled by creator */}
+                          <div className="bg-white/80 border border-amber-100/60 p-2.5 rounded-xl space-y-1.5 text-[11px] text-gray-600">
+                            <div className="flex justify-between">
+                              <span className="text-gray-400">NIP Pegawai:</span>
+                              <span className="font-bold text-gray-900">{nipStr}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-400">No Telepon/WA:</span>
+                              <span className="font-bold text-blue-600 hover:underline">
+                                <a href={`https://wa.me/${teleponStr.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer">
+                                  {teleponStr} 💬
+                                </a>
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-400">Username / Email:</span>
+                              <span className="font-mono font-semibold text-gray-800">{usernameStr}</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="flex gap-2 mt-4 pt-3 border-t border-gray-100">
-                        <button
-                          onClick={() => onApproveAccount(acc.username)}
-                          className="flex-1 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold cursor-pointer flex items-center justify-center gap-1 transition-all"
-                        >
-                          <Check className="w-3.5 h-3.5" /> Setujui Akun
-                        </button>
-                        <button
-                          onClick={() => onRejectAccount(acc.username)}
-                          className="flex-1 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg font-bold cursor-pointer flex items-center justify-center gap-1 transition-all"
-                        >
-                          <X className="w-3.5 h-3.5" /> Tolak Pendaftaran
-                        </button>
+                        <div className="flex gap-2 mt-4 pt-3 border-t border-gray-100">
+                          <button
+                            onClick={() => onApproveAccount(usernameStr)}
+                            className="flex-1 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold cursor-pointer flex items-center justify-center gap-1 transition-all"
+                          >
+                            <Check className="w-3.5 h-3.5" /> Setujui Akun
+                          </button>
+                          <button
+                            onClick={() => onRejectAccount(usernameStr)}
+                            className="flex-1 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg font-bold cursor-pointer flex items-center justify-center gap-1 transition-all"
+                          >
+                            <X className="w-3.5 h-3.5" /> Tolak Pendaftaran
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="p-4 bg-slate-50 border border-gray-100 rounded-xl text-center text-gray-400 font-medium">
@@ -215,96 +224,106 @@ export default function AdminControlView({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 text-xs font-medium text-gray-700">
-                      {activeOrRejectedAccounts.map(acc => (
-                        <tr key={acc.username} className="hover:bg-slate-50/50 transition-colors">
-                          <td className="p-3">
-                            <span className="font-bold text-gray-900 block">{acc.nama}</span>
-                            <span className="text-[10px] text-gray-400 block mt-0.5">NIP: {acc.nip || '-'}</span>
-                          </td>
-                          <td className="p-3 font-semibold text-gray-600">{acc.jabatan}</td>
-                          <td className="p-3 font-mono text-gray-800">{acc.username}</td>
-                          <td className="p-3">
-                            {editingPasswordUser === acc.username ? (
-                              <div className="flex items-center gap-1">
-                                <input
-                                  type="text"
-                                  value={newPasswordVal}
-                                  onChange={(e) => setNewPasswordVal(e.target.value)}
-                                  className="px-2 py-1 border border-blue-300 rounded text-xs w-24 bg-white font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                  autoFocus
-                                />
+                      {activeOrRejectedAccounts.map((acc, idx) => {
+                        const usernameStr = String(acc?.username || `user-${idx}`);
+                        const namaStr = String(acc?.nama || 'Tanpa Nama');
+                        const jabatanStr = String(acc?.jabatan || '-');
+                        const nipStr = String(acc?.nip || '-');
+                        const teleponStr = String(acc?.telepon || '-');
+                        const passwordStr = String(acc?.password || '-');
+                        const statusStr = String(acc?.status || '-');
+
+                        return (
+                          <tr key={usernameStr} className="hover:bg-slate-50/50 transition-colors">
+                            <td className="p-3">
+                              <span className="font-bold text-gray-900 block">{namaStr}</span>
+                              <span className="text-[10px] text-gray-400 block mt-0.5">NIP: {nipStr}</span>
+                            </td>
+                            <td className="p-3 font-semibold text-gray-600">{jabatanStr}</td>
+                            <td className="p-3 font-mono text-gray-800">{usernameStr}</td>
+                            <td className="p-3">
+                              {editingPasswordUser === usernameStr ? (
+                                <div className="flex items-center gap-1">
+                                  <input
+                                    type="text"
+                                    value={newPasswordVal}
+                                    onChange={(e) => setNewPasswordVal(e.target.value)}
+                                    className="px-2 py-1 border border-blue-300 rounded text-xs w-24 bg-white font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    autoFocus
+                                  />
+                                  <button
+                                    onClick={() => {
+                                      if (newPasswordVal.trim().length < 4) {
+                                        alert('Kata sandi minimal 4 karakter!');
+                                        return;
+                                      }
+                                      onUpdatePassword?.(usernameStr, newPasswordVal);
+                                      setEditingPasswordUser(null);
+                                    }}
+                                    className="p-1 bg-green-100 hover:bg-green-200 text-green-700 rounded cursor-pointer transition-colors"
+                                    title="Simpan"
+                                  >
+                                    <Check className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => setEditingPasswordUser(null)}
+                                    className="p-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded cursor-pointer transition-colors"
+                                    title="Batal"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono bg-slate-100 px-2 py-0.5 rounded text-slate-800 font-semibold select-all text-[11px]">
+                                    {passwordStr}
+                                  </span>
+                                  <button
+                                    onClick={() => {
+                                      setEditingPasswordUser(usernameStr);
+                                      setNewPasswordVal(passwordStr);
+                                    }}
+                                    className="p-1 hover:bg-slate-100 text-blue-600 hover:text-blue-700 rounded cursor-pointer transition-all"
+                                    title="Ubah Kata Sandi"
+                                  >
+                                    <Key className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              )}
+                            </td>
+                            <td className="p-3">
+                              <span className="text-blue-600 hover:underline font-bold">
+                                {teleponStr}
+                              </span>
+                            </td>
+                            <td className="p-3 text-center">
+                              <span className={`inline-block px-2.5 py-0.5 rounded text-[10px] font-bold ${
+                                statusStr === 'Disetujui' ? 'bg-green-100 text-green-700' :
+                                statusStr === 'Pending' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
+                              }`}>
+                                {statusStr}
+                              </span>
+                            </td>
+                            <td className="p-3 text-center">
+                              {usernameStr.toLowerCase() === 'admin' ? (
+                                <span className="text-[10px] text-gray-400 italic">Sistem Utama</span>
+                              ) : (
                                 <button
                                   onClick={() => {
-                                    if (newPasswordVal.trim().length < 4) {
-                                      alert('Kata sandi minimal 4 karakter!');
-                                      return;
+                                    if (confirm(`Apakah Anda yakin ingin menghapus akun "${namaStr}"?`)) {
+                                      onDeleteAccount(usernameStr);
                                     }
-                                    onUpdatePassword?.(acc.username, newPasswordVal);
-                                    setEditingPasswordUser(null);
                                   }}
-                                  className="p-1 bg-green-100 hover:bg-green-200 text-green-700 rounded cursor-pointer transition-colors"
-                                  title="Simpan"
+                                  className="p-1.5 hover:bg-red-50 text-red-600 rounded-lg cursor-pointer inline-flex items-center justify-center transition-all"
+                                  title="Hapus Akun"
                                 >
-                                  <Check className="w-3.5 h-3.5" />
+                                  <Trash2 className="w-4 h-4" />
                                 </button>
-                                <button
-                                  onClick={() => setEditingPasswordUser(null)}
-                                  className="p-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded cursor-pointer transition-colors"
-                                  title="Batal"
-                                >
-                                  <X className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <span className="font-mono bg-slate-100 px-2 py-0.5 rounded text-slate-800 font-semibold select-all text-[11px]">
-                                  {acc.password}
-                                </span>
-                                <button
-                                  onClick={() => {
-                                    setEditingPasswordUser(acc.username);
-                                    setNewPasswordVal(acc.password);
-                                  }}
-                                  className="p-1 hover:bg-slate-100 text-blue-600 hover:text-blue-700 rounded cursor-pointer transition-all"
-                                  title="Ubah Kata Sandi"
-                                >
-                                  <Key className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            )}
-                          </td>
-                          <td className="p-3">
-                            <span className="text-blue-600 hover:underline font-bold">
-                              {acc.telepon}
-                            </span>
-                          </td>
-                          <td className="p-3 text-center">
-                            <span className={`inline-block px-2.5 py-0.5 rounded text-[10px] font-bold ${
-                              acc.status === 'Disetujui' ? 'bg-green-100 text-green-700' :
-                              acc.status === 'Pending' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
-                            }`}>
-                              {acc.status}
-                            </span>
-                          </td>
-                          <td className="p-3 text-center">
-                            {String(acc.username || '').toLowerCase() === 'admin' ? (
-                              <span className="text-[10px] text-gray-400 italic">Sistem Utama</span>
-                            ) : (
-                              <button
-                                onClick={() => {
-                                  if (confirm(`Apakah Anda yakin ingin menghapus akun "${acc.nama}"?`)) {
-                                    onDeleteAccount(acc.username);
-                                  }
-                                }}
-                                className="p-1.5 hover:bg-red-50 text-red-600 rounded-lg cursor-pointer inline-flex items-center justify-center transition-all"
-                                title="Hapus Akun"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

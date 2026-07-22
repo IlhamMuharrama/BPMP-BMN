@@ -23,7 +23,9 @@ import AuditLogView from './components/AuditLogView';
 import PegawaiView from './components/PegawaiView';
 import LoginView from './components/LoginView';
 import AdminControlView from './components/AdminControlView';
+import ErrorBoundary from './components/ErrorBoundary';
 
+import { compressImage } from './utils/imageCompressor';
 import {
   INITIAL_BARANG,
   INITIAL_KATEGORI,
@@ -207,11 +209,31 @@ export default function App() {
       setIsSyncing(true);
       setSyncError(null);
       try {
+        // Ensure image base64 never exceeds Google Sheets 50k cell limit
+        const sanitizedBarang = await Promise.all(
+          (barangList || []).map(async (item) => {
+            if (item.imageUrl && item.imageUrl.startsWith('data:image') && item.imageUrl.length > 30000) {
+              try {
+                const compressed = await compressImage(item.imageUrl, 300, 300, 0.5);
+                return { 
+                  ...item, 
+                  imageUrl: compressed && compressed.length < 40000 
+                    ? compressed 
+                    : 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&q=80&w=200' 
+                };
+              } catch (e) {
+                return { ...item, imageUrl: 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&q=80&w=200' };
+              }
+            }
+            return item;
+          })
+        );
+
         const res = await fetch('/api/sync', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            Barang: barangList,
+            Barang: sanitizedBarang,
             Kategori: kategoriList,
             Supplier: supplierList,
             Unit: unitList,
@@ -677,15 +699,16 @@ export default function App() {
 
         {/* Content Body */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 scrollbar-thin">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.15, ease: 'easeOut' }}
-              className="h-full"
-            >
+          <ErrorBoundary>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.15, ease: 'easeOut' }}
+                className="h-full"
+              >
               {activeTab === 'dashboard' && (
                 <DashboardView
                   barang={barangList}
@@ -858,6 +881,7 @@ export default function App() {
               )}
             </motion.div>
           </AnimatePresence>
+          </ErrorBoundary>
         </main>
       </div>
 

@@ -5,6 +5,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Camera, Upload, Trash2, Video, VideoOff, RefreshCw, Sparkles, Image as ImageIcon, AlertCircle } from 'lucide-react';
+import { compressImage } from '../utils/imageCompressor';
 
 interface ImagePickerProps {
   value: string;
@@ -82,26 +83,31 @@ export default function ImagePicker({ value, onChange, label = 'Foto Barang BMN'
   }, [mode]);
 
   // Handle File upload
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          onChange(reader.result);
-        }
-      };
-      reader.readAsDataURL(file);
+      try {
+        const compressed = await compressImage(file, 360, 360, 0.6);
+        onChange(compressed);
+      } catch (err) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (typeof reader.result === 'string') {
+            onChange(reader.result);
+          }
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
   // Handle capture from real camera
-  const handleCapture = () => {
+  const handleCapture = async () => {
     if (videoRef.current) {
       const video = videoRef.current;
       const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth || 640;
-      canvas.height = video.videoHeight || 480;
+      canvas.width = Math.min(video.videoWidth || 640, 480);
+      canvas.height = Math.min(video.videoHeight || 480, 480);
       const ctx = canvas.getContext('2d');
       if (ctx) {
         // Flash screen effect
@@ -109,8 +115,9 @@ export default function ImagePicker({ value, onChange, label = 'Foto Barang BMN'
         setTimeout(() => setFlashEffect(false), 300);
 
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-        onChange(dataUrl);
+        const rawUrl = canvas.toDataURL('image/jpeg', 0.6);
+        const compressedUrl = await compressImage(rawUrl, 360, 360, 0.6);
+        onChange(compressedUrl);
         setMode('idle');
       }
     }

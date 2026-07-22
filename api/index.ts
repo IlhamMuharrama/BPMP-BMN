@@ -48,6 +48,10 @@ const jsonToSheetData = (jsonArray: any[]) => {
 };
 
 // Helper: Ubah 2D Array dari Spreadsheet menjadi Array of Objects
+const NUMERIC_FIELDS = new Set([
+  "stokSekarang", "stokMin", "stokMaks", "jumlah", "harga", "diskon"
+]);
+
 const sheetDataToJson = (rows: any[][]) => {
   if (!rows || rows.length < 2) return [];
   const headers = rows[0];
@@ -55,19 +59,21 @@ const sheetDataToJson = (rows: any[][]) => {
   return rows.slice(1).map(row => {
     const obj: any = {};
     headers.forEach((header, index) => {
-      let val = row[index] || "";
+      let val = row[index] !== undefined && row[index] !== null ? row[index] : "";
       // Convert boolean string back to boolean if needed, or parse JSON
       if (val === "true") val = true;
       else if (val === "false") val = false;
-      else if (val.startsWith("[") || val.startsWith("{")) {
+      else if (typeof val === 'string' && (val.startsWith("[") || val.startsWith("{"))) {
         try { val = JSON.parse(val); } catch (e) {}
-      } else if (!isNaN(Number(val)) && val !== "") {
+      } else if (NUMERIC_FIELDS.has(header) && !isNaN(Number(val)) && val !== "") {
         val = Number(val);
+      } else {
+        val = String(val);
       }
       obj[header] = val;
     });
     return obj;
-  });
+  }).filter(obj => Object.keys(obj).length > 0 && Object.values(obj).some(v => v !== "" && v !== null && v !== undefined));
 };
 
 // ==========================================
