@@ -213,6 +213,26 @@ app.post("/api/drive/upload", async (req, res) => {
       return res.status(400).json({ error: "Filename dan fileData (Base64) wajib diisi." });
     }
 
+    const gasUrl = process.env.GAS_UPLOAD_URL || "https://script.google.com/macros/s/AKfycbxZ52H2X8EdlIxb6R4k8ZhEGeaFYqePn73oi6GaqTmuUw7_Iy8UKiVXrcHvGn3dCbSs/exec";
+    
+    if (gasUrl) {
+      try {
+        const fetch = (await import('node-fetch')).default;
+        const response = await fetch(gasUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename, fileData, folderId })
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+          return res.json({ success: true, fileId: result.fileId, webViewLink: result.webViewLink, message: "File berhasil diunggah via Apps Script!" });
+        }
+      } catch (err: any) {
+        console.error("Gagal fetch ke GAS URL:", err.message);
+      }
+    }
+
     if (process.env.GOOGLE_CLIENT_EMAIL && process.env.GOOGLE_PRIVATE_KEY) {
       const matches = String(fileData).match(/^data:(.+);base64,(.+)$/);
       const mimeType = matches ? matches[1] : 'application/pdf';
