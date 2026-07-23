@@ -395,12 +395,12 @@ function checkStokAlert(ss, id, nama, stok, min) {
 }
 
 /**
- * Mengunggah file (faktur/dokumen) secara asinkronus ke folder Reports di Google Drive.
+ * Mengunggah file (faktur/dokumen) secara asinkronus ke folder Dokumen Transaksi di Google Drive.
  */
 function uploadFileToDrive(base64Data, filename) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const settings = getSystemSettings(ss);
-  const folderId = settings["FOLDER_REPORTS_ID"];
+  const folderId = settings["FOLDER_DOKUMEN_ID"] || settings["FOLDER_REPORTS_ID"];
   
   if (!folderId) return "No_Folder_Configured.pdf";
   

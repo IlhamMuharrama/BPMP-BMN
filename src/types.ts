@@ -129,7 +129,9 @@ export interface Settings {
   autoSyncIntervalSec?: number;
   folderQrId: string;
   folderImagesId: string;
-  folderReportsId: string;
+  folderReportsId?: string; // Legacy
+  folderLaporanId?: string;
+  folderDokumenId?: string;
   folderBackupId: string;
   spreadsheetId: string;
   bilaStokRendahNotif: boolean;

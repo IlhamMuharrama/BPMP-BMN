@@ -35,7 +35,7 @@ function initializeSystem() {
     // 3. Log Audit Inisialisasi Berhasil
     logActivityToSheet(ss, "SYSTEM", "SETUP", "Inisialisasi sistem basis data dan folder Google Drive berhasil dijalankan.");
     
-    const successMsg = "Sistem Informasi Monitoring Persediaan Barang berhasil diinisialisasi.\\n\\nID Spreadsheet: " + ss.getId() + "\\nFolder Utama Drive: BPMP Inventory";
+    const successMsg = "Sistem Informasi Monitoring Persediaan Barang berhasil diinisialisasi.\\n\\nID Spreadsheet: " + ss.getId() + "\\nFolder Utama Drive: DATABASE BMN\\n\\nPENTING JIKA DEPLOY VIA VERCEL:\\nBuka Google Drive Anda, cari folder 'DATABASE BMN', lalu klik kanan -> Bagikan (Share) -> masukkan email Service Account Google Cloud Anda sebagai Editor.";
     if (ui) {
       ui.alert("Sukses!", successMsg, ui.ButtonSet.OK);
     } else {
@@ -55,7 +55,7 @@ function initializeSystem() {
  * Membuat seluruh folder Google Drive yang diperlukan dan mengembalikan ID Folder.
  */
 function setupDriveFolders() {
-  const folderName = "BPMP Inventory";
+  const folderName = "DATABASE BMN";
   let mainFolder;
   
   // Cari folder utama agar tidak duplikat jika dirun ulang
@@ -66,7 +66,7 @@ function setupDriveFolders() {
     mainFolder = DriveApp.createFolder(folderName);
   }
   
-  const subFolders = ["QR Code", "Images", "Reports", "Backup"];
+  const subFolders = ["QR Codes", "Images", "Laporan", "Backup Data", "Dokumen Transaksi"];
   const folderIds = {
     main: mainFolder.getId()
   };
@@ -79,7 +79,8 @@ function setupDriveFolders() {
     } else {
       subFolder = mainFolder.createFolder(sub);
     }
-    folderIds[sub.replace(" ", "")] = subFolder.getId();
+    // Hapus spasi untuk penamaan key object
+    folderIds[sub.replace(/ /g, "")] = subFolder.getId();
   });
   
   return folderIds;
@@ -167,10 +168,11 @@ function seedInitialData(name, sheet, driveSettings) {
   else if (name === "Settings") {
     sheet.appendRow(["NAMA_INSTITUSI", "BPMP Provinsi Sumatera Selatan", "Nama Lembaga Resmi"]);
     sheet.appendRow(["LOGO_URL", "https://upload.wikimedia.org/wikipedia/commons/9/9c/Logo_Kementerian_Pendidikan_dan_Kebudayaan.png", "Logo Kop Surat"]);
-    sheet.appendRow(["FOLDER_QR_ID", driveSettings.QRCode, "Folder ID QR Code"]);
+    sheet.appendRow(["FOLDER_QR_ID", driveSettings.QRCodes, "Folder ID QR Codes"]);
     sheet.appendRow(["FOLDER_IMAGES_ID", driveSettings.Images, "Folder ID Images"]);
-    sheet.appendRow(["FOLDER_REPORTS_ID", driveSettings.Reports, "Folder ID Reports"]);
-    sheet.appendRow(["FOLDER_BACKUP_ID", driveSettings.Backup, "Folder ID Backup"]);
+    sheet.appendRow(["FOLDER_LAPORAN_ID", driveSettings.Laporan, "Folder ID Laporan"]);
+    sheet.appendRow(["FOLDER_BACKUP_ID", driveSettings.BackupData, "Folder ID Backup"]);
+    sheet.appendRow(["FOLDER_DOKUMEN_ID", driveSettings.DokumenTransaksi, "Folder ID Dokumen (Faktur/PDF)"]);
   }
   else if (name === "Barang") {
     sheet.appendRow([
