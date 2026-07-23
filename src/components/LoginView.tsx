@@ -129,34 +129,9 @@ export default function LoginView({ accounts, onLoginSuccess, onRegisterAccount 
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans select-none">
       
       {/* Dynamic Animated Motion Background Elements */}
-      {/* 1. Rotating Ambient Gradient Orbs */}
-      <motion.div 
-        animate={{
-          scale: [1, 1.25, 1],
-          opacity: [0.25, 0.4, 0.25],
-          rotate: [0, 180, 360]
-        }}
-        transition={{
-          duration: 18,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
-        className="absolute -top-32 -left-32 w-[550px] h-[550px] rounded-full bg-gradient-to-tr from-blue-600/30 via-indigo-600/20 to-sky-400/10 blur-[120px] pointer-events-none"
-      />
-
-      <motion.div 
-        animate={{
-          scale: [1.2, 1, 1.2],
-          opacity: [0.2, 0.35, 0.2],
-          rotate: [360, 180, 0]
-        }}
-        transition={{
-          duration: 22,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
-        className="absolute -bottom-32 -right-32 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-indigo-700/30 via-blue-500/20 to-purple-600/15 blur-[140px] pointer-events-none"
-      />
+      {/* 1. Static Ambient Gradient Orbs (Animations removed for mobile performance) */}
+      <div className="absolute -top-32 -left-32 w-[550px] h-[550px] rounded-full bg-gradient-to-tr from-blue-600/30 via-indigo-600/20 to-sky-400/10 blur-[100px] pointer-events-none" />
+      <div className="absolute -bottom-32 -right-32 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-indigo-700/30 via-blue-500/20 to-purple-600/15 blur-[100px] pointer-events-none" />
 
       {/* 2. Floating Cyber Grid Lines / Tech Pattern */}
       <div className="absolute inset-0 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:32px_32px] opacity-[0.04] pointer-events-none" />
