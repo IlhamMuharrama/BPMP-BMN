@@ -233,7 +233,7 @@ export default function App() {
     // Auto sync every 30 seconds
     const interval = setInterval(() => {
       fetchData(true);
-    }, 30000);
+    }, 300000);
     
     return () => clearInterval(interval);
   }, []);
@@ -297,7 +297,7 @@ const handler = setTimeout(async () => {
         // Ensure image base64 never exceeds Google Sheets 50k cell limit
         const sanitizedBarang = await Promise.all(
           (barangList || []).map(async (item) => {
-            if (item.imageUrl && item.imageUrl.startsWith('data:image') && item.imageUrl.length > 30000) {
+            if (item.imageUrl && item.imageUrl.startsWith('data:image') && item.imageUrl.length > 300000) {
               try {
                 const compressed = await compressImage(item.imageUrl, 300, 300, 0.5);
                 return { 
