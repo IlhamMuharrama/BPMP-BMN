@@ -848,6 +848,7 @@ export default function App() {
                   quickAddBarangId={quickAddBarangId}
                   clearQuickAdd={() => setQuickAddBarangId('')}
                   pegawaiList={pegawaiList}
+                  folderId={settings?.folderDokumenId || settings?.folderReportsId}
                 />
               )}
 

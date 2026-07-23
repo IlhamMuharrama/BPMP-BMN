@@ -17,6 +17,7 @@ interface TransaksiMasukViewProps {
   quickAddBarangId?: string;
   clearQuickAdd?: () => void;
   pegawaiList: Pegawai[];
+  folderId?: string;
 }
 
 export default function TransaksiMasukView({
@@ -27,7 +28,8 @@ export default function TransaksiMasukView({
   currentUserRole,
   quickAddBarangId,
   clearQuickAdd,
-  pegawaiList
+  pegawaiList,
+  folderId
 }: TransaksiMasukViewProps) {
   // Form State
   const [selectedBarangId, setSelectedBarangId] = useState(quickAddBarangId || (barangList[0]?.id || ''));
@@ -61,7 +63,8 @@ export default function TransaksiMasukView({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           filename: file.name,
-          fileData: base64
+          fileData: base64,
+          folderId: folderId
         })
       }).catch(err => console.log('Drive background upload handled locally:', err));
     };

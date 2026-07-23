@@ -236,6 +236,7 @@ app.post("/api/drive/upload", async (req, res) => {
           body: stream,
         },
         fields: 'id, webViewLink, webContentLink',
+        supportsAllDrives: true
       });
 
       return res.json({
