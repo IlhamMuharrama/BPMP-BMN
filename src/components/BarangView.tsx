@@ -416,10 +416,10 @@ export default function BarangView({
 
       {/* DETAIL & QR MODAL */}
       {showDetailModal && activeItem && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-md w-full shadow-xl border border-gray-100 overflow-hidden">
-            <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-              <span className="text-xs font-bold text-gray-400">DETAIL BARANG PERSERDIAN</span>
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-md w-full shadow-xl border border-gray-100 overflow-hidden flex flex-col max-h-[90vh] my-auto">
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between shrink-0 bg-white">
+              <span className="text-xs font-bold text-gray-400">DETAIL BARANG PERSEDIAAN</span>
               <button
                 onClick={() => setShowDetailModal(false)}
                 className="p-1 hover:bg-gray-100 rounded-lg text-gray-500 cursor-pointer"
@@ -427,7 +427,7 @@ export default function BarangView({
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="p-5 space-y-4">
+            <div className="p-5 space-y-4 overflow-y-auto">
               <div className="flex gap-4 items-start">
                 <img
                   src={activeItem.imageUrl}

@@ -4,40 +4,30 @@
  */
 
 import React from 'react';
-import { FileSpreadsheet, Printer, TrendingUp, AlertTriangle, PackageCheck, Download, ChevronRight } from 'lucide-react';
-import { Barang, Riwayat } from '../types';
+import { FileSpreadsheet, Printer, AlertTriangle, PackageCheck, Download, Package } from 'lucide-react';
+import { Barang, Riwayat, Settings } from '../types';
 
 interface LaporanViewProps {
   barang: Barang[];
   riwayat: Riwayat[];
   instituteName: string;
+  settings?: Settings;
 }
 
-export default function LaporanView({ barang, riwayat, instituteName }: LaporanViewProps) {
+export default function LaporanView({ barang, riwayat, instituteName, settings }: LaporanViewProps) {
   // Calculations
   const totalBarang = barang.length;
   const stokMenipis = barang.filter(b => b.stokSekarang < b.stokMin && b.stokSekarang > 0).length;
   const stokHabis = barang.filter(b => b.stokSekarang === 0).length;
   const totalStokUnit = barang.reduce((sum, item) => sum + item.stokSekarang, 0);
 
-  const formatRupiah = (num: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(num);
-  };
-
-  const getHargaEst = (cat: string) => {
-    if (cat.includes('Komputer')) return 850000;
-    if (cat.includes('Sosialisasi')) return 250000;
-    if (cat.includes('Konsumsi')) return 35000;
-    if (cat.includes('Kebersihan')) return 75000;
-    return 50000; // ATK
-  };
-
-  const totalValue = barang.reduce((sum, b) => sum + (b.stokSekarang * getHargaEst(b.kategori)), 0);
+  const subHeaderKop = settings?.subHeaderKop || 'KEMENTERIAN PENDIDIKAN, KEBUDAYAAN, RISET, DAN TEKNOLOGI';
+  const namaInstansi = settings?.namaInstitusi || 'BALAI PENJAMINAN MUTU PENDIDIKAN PROVINSI SUMATERA SELATAN';
+  const alamatKop = settings?.alamatKop || 'Jl. Jenderal Sudirman Km. 6.5 Palembang Telp. (0711) 356789 Fax. 356790';
+  const kontakKop = settings?.kontakKop || 'Email: bpmp.sumsel@kemdikbud.go.id | Laman: bpmp-sumsel.kemdikbud.go.id';
+  const namaPj = settings?.namaPenanggungJawab || 'Ilham Muharrama';
+  const jabatanPj = settings?.jabatanPenanggungJawab || 'Administrator / Petugas BMN';
+  const nipPj = settings?.nipPenanggungJawab || '-';
 
   const handlePrintOfficialPDF = () => {
     const printWindow = window.open('', '_blank');
@@ -60,7 +50,6 @@ export default function LaporanView({ barang, riwayat, instituteName }: LaporanV
           <td style="text-align: center; border: 1px solid black; padding: 6px;">${b.stokSekarang}</td>
           <td style="text-align: center; border: 1px solid black; padding: 6px;">${b.satuan}</td>
           <td style="border: 1px solid black; padding: 6px;">${b.lokasiRak}</td>
-          <td style="text-align: right; border: 1px solid black; padding: 6px;">${formatRupiah(b.stokSekarang * getHargaEst(b.kategori))}</td>
         </tr>
       `
       )
@@ -73,9 +62,9 @@ export default function LaporanView({ barang, riwayat, instituteName }: LaporanV
           <style>
             body { font-family: 'Times New Roman', serif; margin: 40px; color: black; line-height: 1.4; }
             .kop { text-align: center; border-bottom: 3px double black; padding-bottom: 10px; margin-bottom: 20px; }
-            .kop h2 { margin: 0; font-size: 16px; text-transform: uppercase; }
-            .kop h1 { margin: 5px 0; font-size: 20px; text-transform: uppercase; font-weight: bold; }
-            .kop p { margin: 2px 0; font-size: 12px; }
+            .kop h2 { margin: 0; font-size: 14px; text-transform: uppercase; font-weight: normal; }
+            .kop h1 { margin: 5px 0; font-size: 18px; text-transform: uppercase; font-weight: bold; }
+            .kop p { margin: 2px 0; font-size: 11px; }
             .meta { text-align: center; font-size: 14px; font-weight: bold; text-transform: uppercase; margin-bottom: 25px; }
             .meta span { display: block; margin-top: 5px; font-size: 12px; font-weight: normal; text-transform: none; }
             table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 30px; }
@@ -88,11 +77,10 @@ export default function LaporanView({ barang, riwayat, instituteName }: LaporanV
         </head>
         <body>
           <div class="kop">
-            <h2>KEMENTERIAN PENDIDIKAN, KEBUDAYAAN, RISET, DAN TEKNOLOGI</h2>
-            <h1>BALAI PENJAMINAN MUTU PENDIDIKAN</h1>
-            <h2>PROVINSI SUMATERA SELATAN</h2>
-            <p>Jl. Jenderal Sudirman Km. 6.5 Palembang Telp. (0711) 356789 Fax. 356790</p>
-            <p>Email: bpmp.sumsel@kemdikbud.go.id | Laman: bpmp-sumsel.kemdikbud.go.id</p>
+            <h2>${subHeaderKop}</h2>
+            <h1>${namaInstansi}</h1>
+            <p>${alamatKop}</p>
+            <p>${kontakKop}</p>
           </div>
 
           <div class="meta">
@@ -104,23 +92,21 @@ export default function LaporanView({ barang, riwayat, instituteName }: LaporanV
             <thead>
               <tr>
                 <th style="width: 5%">No</th>
-                <th style="width: 12%">Kode Barang</th>
-                <th style="width: 28%">Nama Barang</th>
-                <th style="width: 20%">Kategori</th>
-                <th style="width: 8%">Volume</th>
+                <th style="width: 14%">Kode Barang</th>
+                <th style="width: 32%">Nama Barang</th>
+                <th style="width: 22%">Kategori</th>
+                <th style="width: 9%">Volume</th>
                 <th style="width: 8%">Satuan</th>
                 <th style="width: 10%">Lokasi</th>
-                <th style="width: 12%">Nilai Buku (Est)</th>
               </tr>
             </thead>
             <tbody>
               ${rows}
               <tr>
-                <td colspan="4" style="border: 1px solid black; padding: 8px; font-weight: bold; text-align: right;">TOTAL EVALUASI PERSIDIAAN</td>
+                <td colspan="4" style="border: 1px solid black; padding: 8px; font-weight: bold; text-align: right;">TOTAL VOLUME STOK PERSIDIAAN</td>
                 <td style="border: 1px solid black; padding: 8px; font-weight: bold; text-align: center;">${totalStokUnit}</td>
                 <td style="border: 1px solid black; padding: 8px; font-weight: bold;"></td>
                 <td style="border: 1px solid black; padding: 8px; font-weight: bold;"></td>
-                <td style="border: 1px solid black; padding: 8px; font-weight: bold; text-align: right;">${formatRupiah(totalValue)}</td>
               </tr>
             </tbody>
           </table>
@@ -132,10 +118,10 @@ export default function LaporanView({ barang, riwayat, instituteName }: LaporanV
                 <td style="width: 40%; text-align: center;">
                   Palembang, ${todayDate}<br/>
                   Mengetahui,<br/>
-                  <strong>Kepala Subbagian Umum</strong>
+                  <strong>${jabatanPj}</strong>
                   <br/><br/><br/><br/><br/>
-                  <u><strong>Wahyudi, S.Si</strong></u><br/>
-                  NIP. 19740512 200112 1 002
+                  <u><strong>${namaPj}</strong></u><br/>
+                  NIP. ${nipPj}
                 </td>
               </tr>
             </table>
@@ -150,13 +136,11 @@ export default function LaporanView({ barang, riwayat, instituteName }: LaporanV
   };
 
   const handleExportSpreadsheet = () => {
-    const headers = 'Kode Barang,Nama Barang,Kategori,Supplier,Satuan,Lokasi Rak,Stok Sekarang,Stok Minimum,Nilai Persediaan Est\n';
+    const headers = 'Kode Barang,Nama Barang,Kategori,Supplier,Satuan,Lokasi Rak,Stok Sekarang,Stok Minimum\n';
     const rows = barang
       .map(
         b =>
-          `"${b.id}","${b.nama}","${b.kategori}","${b.supplier}","${b.satuan}","${b.lokasiRak}",${
-            b.stokSekarang
-          },${b.stokMin},${b.stokSekarang * getHargaEst(b.kategori)}`
+          `"${b.id}","${b.nama}","${b.kategori}","${b.supplier}","${b.satuan}","${b.lokasiRak}",${b.stokSekarang},${b.stokMin}`
       )
       .join('\n');
     const csvContent = 'data:text/csv;charset=utf-8,' + encodeURIComponent(headers + rows);
@@ -173,6 +157,16 @@ export default function LaporanView({ barang, riwayat, instituteName }: LaporanV
     <div className="space-y-6">
       {/* Quick stats on inventory health */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-white p-4 border border-gray-200 rounded-2xl shadow-sm flex items-center gap-4">
+          <div className="bg-blue-50 text-blue-600 p-3 rounded-xl">
+            <Package className="w-6 h-6" />
+          </div>
+          <div>
+            <span className="text-xs text-gray-500 block font-medium">Total Katalog BMN</span>
+            <span className="text-lg font-bold text-gray-900 block mt-0.5">{totalBarang} Jenis Item</span>
+          </div>
+        </div>
+
         <div className="bg-white p-4 border border-gray-200 rounded-2xl shadow-sm flex items-center gap-4">
           <div className="bg-emerald-50 text-emerald-600 p-3 rounded-xl">
             <PackageCheck className="w-6 h-6" />
@@ -194,16 +188,6 @@ export default function LaporanView({ barang, riwayat, instituteName }: LaporanV
             <span className="text-lg font-bold text-gray-900 block mt-0.5">{stokMenipis + stokHabis} Item</span>
           </div>
         </div>
-
-        <div className="bg-white p-4 border border-gray-200 rounded-2xl shadow-sm flex items-center gap-4">
-          <div className="bg-blue-50 text-blue-600 p-3 rounded-xl">
-            <TrendingUp className="w-6 h-6" />
-          </div>
-          <div>
-            <span className="text-xs text-gray-500 block font-medium">Valuasi Persediaan</span>
-            <span className="text-lg font-bold text-gray-900 block mt-0.5">{formatRupiah(totalValue)}</span>
-          </div>
-        </div>
       </div>
 
       {/* Reports portal section with bento items */}
@@ -216,7 +200,7 @@ export default function LaporanView({ barang, riwayat, instituteName }: LaporanV
               Laporan Rekapitulasi Persediaan (Katalog BMN)
             </h4>
             <p className="text-xs text-gray-500 leading-relaxed">
-              Laporan komprehensif berisi kode barang, nama barang, lokasi rak, volume sisa stok saat ini, satuan kuantitas, dan estimasi nilai buku persediaan BPMP Sumsel.
+              Laporan komprehensif berisi kode barang, nama barang, lokasi rak, volume sisa stok saat ini, dan satuan kuantitas persediaan BPMP Sumsel.
             </p>
           </div>
           <div className="flex flex-wrap gap-2 pt-4 border-t border-gray-100">
@@ -243,13 +227,12 @@ export default function LaporanView({ barang, riwayat, instituteName }: LaporanV
               Laporan Buku Mutasi Transaksi (Buku Besar)
             </h4>
             <p className="text-xs text-gray-500 leading-relaxed">
-              Mengekspor berkas riwayat seluruh sirkulasi keluar dan masuk barang yang disahkan oleh penanggung jawab per semester. Berguna untuk pelaporan keuangan barang milik negara.
+              Mengekspor berkas riwayat seluruh sirkulasi keluar dan masuk barang yang disahkan oleh penanggung jawab per semester.
             </p>
           </div>
           <div className="flex flex-wrap gap-2 pt-4 border-t border-gray-100">
             <button
               onClick={() => {
-                // simple simulated alert for monthly rekap
                 alert('Dokumen rekap bulanan diunduh otomatis dalam format Spreadsheet.');
                 handleExportSpreadsheet();
               }}

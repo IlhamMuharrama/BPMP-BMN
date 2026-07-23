@@ -191,7 +191,7 @@ function seedInitialData(name, sheet, driveSettings) {
     ]);
   }
   else if (name === "Accounts") {
-    sheet.appendRow(["admin", "Wahyudi, S.Si", "197509121999031002", "Kepala Subbagian Umum / Administrator", "081178901234", "admin", "Administrator", "Disetujui", now]);
+    sheet.appendRow(["admin", "Ilham Muharrama", "-", "Magang/KP", "08981741680", "admin", "Administrator", "Disetujui", now]);
     sheet.appendRow(["petugas", "Roni Setiawan", "198804152014021003", "Petugas BMN", "081271234567", "bmn", "Petugas BMN", "Disetujui", now]);
     sheet.appendRow(["budi_baru", "Budi Budiman", "199112022019031005", "Petugas BMN Baru", "08981741680", "budi", "Petugas BMN", "Pending", now]);
   }

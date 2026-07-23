@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ShieldAlert, X, Database, Cloud } from 'lucide-react';
+import { ShieldAlert, X, RefreshCw, CheckCircle2, Database } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
 import DashboardView from './components/DashboardView';
@@ -63,10 +63,10 @@ import {
 const INITIAL_ACCOUNTS: UserAccount[] = [
   {
     username: 'admin',
-    nama: 'Wahyudi, S.Si',
-    nip: '197509121999031002',
-    jabatan: 'Kepala Subbagian Umum / Administrator',
-    telepon: '081178901234',
+    nama: 'Ilham Muharrama',
+    nip: '-',
+    jabatan: 'Magang/KP',
+    telepon: '08981741680',
     password: 'admin',
     role: 'Administrator',
     status: 'Disetujui',
@@ -160,6 +160,7 @@ export default function App() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [showSyncSuccess, setShowSyncSuccess] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const firstLoadRef = React.useRef(true);
 
@@ -180,7 +181,14 @@ export default function App() {
           if (data.BarangKeluar && data.BarangKeluar.length > 0) setBarangKeluarList(data.BarangKeluar);
           if (data.Riwayat && data.Riwayat.length > 0) setRiwayatList(data.Riwayat);
           if (data.AuditLog && data.AuditLog.length > 0) setAuditLogsList(data.AuditLog);
-          if (data.Accounts && data.Accounts.length > 0) setAccounts(data.Accounts);
+          if (data.Accounts && data.Accounts.length > 0) {
+            const updatedAccs = data.Accounts.map((a: UserAccount) =>
+              a.username === 'admin'
+                ? { ...a, nama: 'Ilham Muharrama', nip: '-', jabatan: 'Magang/KP', telepon: '08981741680' }
+                : a
+            );
+            setAccounts(updatedAccs);
+          }
           if (data.Settings && data.Settings.length > 0) setSettings(data.Settings[0]);
           if (data.Notifications && data.Notifications.length > 0) setNotificationsList(data.Notifications);
         } else {
@@ -197,6 +205,26 @@ export default function App() {
     fetchData();
   }, []);
 
+  // Ensure admin user profile always matches Ilham Muharrama
+  React.useEffect(() => {
+    if (currentUser && currentUser.username === 'admin') {
+      if (currentUser.nama !== 'Ilham Muharrama' || currentUser.jabatan !== 'Magang/KP' || currentUser.telepon !== '08981741680' || currentUser.nip !== '-') {
+        const updated = {
+          ...currentUser,
+          nama: 'Ilham Muharrama',
+          nip: '-',
+          jabatan: 'Magang/KP',
+          telepon: '08981741680'
+        };
+        setCurrentUser(updated);
+        localStorage.setItem('bpmp_bmn_session', JSON.stringify({
+          user: updated,
+          timestamp: new Date().toISOString()
+        }));
+      }
+    }
+  }, [currentUser]);
+
   // Save to Sheets on change (debounced)
   React.useEffect(() => {
     if (isLoading) return; // Jangan save saat masih loading awal
@@ -207,7 +235,9 @@ export default function App() {
 
     const handler = setTimeout(async () => {
       setIsSyncing(true);
+      setShowSyncSuccess(false);
       setSyncError(null);
+      let saveOk = false;
       try {
         // Ensure image base64 never exceeds Google Sheets 50k cell limit
         const sanitizedBarang = await Promise.all(
@@ -253,13 +283,20 @@ export default function App() {
           const errData = await res.json();
           throw new Error(errData.error || 'Server error');
         }
+        saveOk = true;
       } catch (e: any) {
         console.error("Gagal menyimpan ke spreadsheet:", e);
         setSyncError(`Gagal menyimpan: ${e.message}`);
       } finally {
         setIsSyncing(false);
+        if (saveOk) {
+          setShowSyncSuccess(true);
+          setTimeout(() => {
+            setShowSyncSuccess(false);
+          }, 1800);
+        }
       }
-    }, 2000); // Debounce 2 detik
+    }, 1500); // Debounce 1.5 detik
 
     return () => clearTimeout(handler);
   }, [
@@ -820,17 +857,31 @@ export default function App() {
               {activeTab === 'riwayat' && <RiwayatView riwayat={riwayatList} />}
 
               {activeTab === 'laporan' && (
-                <LaporanView barang={barangList} riwayat={riwayatList} instituteName={settings.namaInstitusi} />
+                <LaporanView barang={barangList} riwayat={riwayatList} instituteName={settings.namaInstitusi} settings={settings} />
               )}
 
               {activeTab === 'pengaturan' && (
-                <PengaturanView
-                  settings={settings}
-                  onSaveSettings={handleSaveSettings}
-                  onResetDatabase={handleResetDatabase}
-                  onSimulateBackup={handleSimulateBackup}
-                  driveFiles={driveFiles}
-                />
+                (currentUser?.role === 'Administrator' || currentUser?.username === 'admin') ? (
+                  <PengaturanView
+                    settings={settings}
+                    onSaveSettings={handleSaveSettings}
+                    onResetDatabase={handleResetDatabase}
+                    onSimulateBackup={handleSimulateBackup}
+                    driveFiles={driveFiles}
+                  />
+                ) : (
+                  <div className="bg-white p-8 rounded-2xl border border-gray-200 text-center space-y-4 max-w-lg mx-auto mt-10 shadow-xs">
+                    <div className="w-12 h-12 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center mx-auto">
+                      <ShieldAlert className="w-6 h-6" />
+                    </div>
+                    <div className="space-y-1">
+                      <h3 className="text-base font-bold text-gray-900">Akses Terbatas — Halaman Khusus Administrator</h3>
+                      <p className="text-xs text-gray-500 leading-relaxed">
+                        Halaman Pengaturan Sistem hanya dapat diakses oleh akun Administrator (Super Admin). Silakan hubungi Administrator jika Anda memerlukan perubahan konfigurasi sistem.
+                      </p>
+                    </div>
+                  </div>
+                )
               )}
 
               {activeTab === 'audit_log' && <AuditLogView logs={auditLogsList} onClearLogs={() => setAuditLogsList([])} />}
@@ -885,40 +936,64 @@ export default function App() {
         </main>
       </div>
 
-      {/* Syncing Indicator */}
+      {/* Centered Modern Pop-Up Loading & Save Status Overlay */}
       <AnimatePresence>
         {isSyncing && (
           <motion.div
-            initial={{ opacity: 0, y: 50, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 50, scale: 0.9 }}
-            className="absolute bottom-6 right-6 bg-slate-900 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-2xl px-5 py-3 flex items-center gap-3 border border-slate-700/50 z-50 overflow-hidden"
+            initial={{ opacity: 0, scale: 0.85, y: -20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.85, y: -20 }}
+            transition={{ type: "spring", stiffness: 350, damping: 25 }}
+            className="fixed top-6 left-1/2 -translate-x-1/2 bg-slate-900/95 backdrop-blur-xl text-white shadow-[0_12px_40px_rgba(0,0,0,0.5)] rounded-2xl px-6 py-3.5 flex items-center gap-3.5 border border-blue-500/30 z-50 pointer-events-none"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-blue-500/10 animate-pulse"></div>
-            <div className="relative flex items-center gap-3">
-              <Database className="w-5 h-5 text-indigo-400 animate-bounce" />
-              <span className="text-sm font-bold text-white tracking-wide">Menyimpan ke Database...</span>
+            <div className="relative flex items-center justify-center">
+              <RefreshCw className="w-5 h-5 text-blue-400 animate-spin" />
+              <div className="absolute inset-0 rounded-full bg-blue-500/20 animate-ping pointer-events-none" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xs font-bold tracking-wide text-white">Menyimpan data...</span>
+              <span className="text-[10px] text-slate-400 font-medium">Memproses pembaruan sistem</span>
+            </div>
+          </motion.div>
+        )}
+
+        {showSyncSuccess && !isSyncing && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.85, y: -20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.85, y: -20 }}
+            transition={{ type: "spring", stiffness: 350, damping: 25 }}
+            className="fixed top-6 left-1/2 -translate-x-1/2 bg-slate-900/95 backdrop-blur-xl text-white shadow-[0_12px_40px_rgba(0,0,0,0.5)] rounded-2xl px-6 py-3.5 flex items-center gap-3.5 border border-emerald-500/40 z-50 pointer-events-none"
+          >
+            <div className="w-7 h-7 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xs font-bold tracking-wide text-white">Data Berhasil Disimpan!</span>
+              <span className="text-[10px] text-emerald-400/90 font-medium">Tersimpan ke sistem</span>
             </div>
           </motion.div>
         )}
         
         {syncError && (
           <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            className="absolute bottom-6 right-6 bg-red-50 shadow-xl rounded-xl px-4 py-3 flex flex-col gap-1 border border-red-200 z-50 max-w-sm"
+            initial={{ opacity: 0, scale: 0.85, y: -20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.85, y: -20 }}
+            className="fixed top-6 left-1/2 -translate-x-1/2 bg-slate-900/95 backdrop-blur-xl text-white shadow-2xl rounded-2xl px-5 py-3.5 flex items-center gap-3.5 border border-red-500/40 z-50 max-w-md w-full"
           >
-            <div className="flex items-center gap-2 text-red-700 font-bold text-sm">
+            <div className="w-8 h-8 rounded-xl bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 shrink-0">
               <ShieldAlert className="w-4 h-4" />
-              Kesalahan Sinkronisasi
             </div>
-            <span className="text-xs font-medium text-red-600">{syncError}</span>
+            <div className="flex flex-col flex-1 min-w-0">
+              <span className="text-xs font-bold text-red-300">Gagal Menyimpan Data</span>
+              <span className="text-[11px] text-slate-300 truncate">{syncError}</span>
+            </div>
             <button 
               onClick={() => setSyncError(null)}
-              className="absolute top-2 right-2 text-red-400 hover:text-red-700"
+              className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
             >
-              <X className="w-3 h-3" />
+              <X className="w-4 h-4" />
             </button>
           </motion.div>
         )}

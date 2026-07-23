@@ -117,7 +117,16 @@ export interface SystemNotification {
 
 export interface Settings {
   namaInstitusi: string;
+  subHeaderKop?: string;
+  alamatKop?: string;
+  kontakKop?: string;
+  namaPenanggungJawab?: string;
+  jabatanPenanggungJawab?: string;
+  nipPenanggungJawab?: string;
   logoUrl: string;
+  prefiksKodeBarang?: string;
+  defaultStokMin?: number;
+  autoSyncIntervalSec?: number;
   folderQrId: string;
   folderImagesId: string;
   folderReportsId: string;
@@ -125,6 +134,7 @@ export interface Settings {
   spreadsheetId: string;
   bilaStokRendahNotif: boolean;
   bilaStokHabisNotif: boolean;
+  konfirmasiOtomatisKeluar?: boolean;
 }
 
 export interface Pegawai {

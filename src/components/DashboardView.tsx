@@ -60,18 +60,7 @@ export default function DashboardView({
   const stokMenipis = barang.filter(b => Number(b.stokSekarang) < Number(b.stokMin) && Number(b.stokSekarang) > 0).length;
   const stokHabis = barang.filter(b => Number(b.stokSekarang) === 0).length;
 
-  // Approximate inventory value (mock average valuation of 125,000 IDR per unit of stock)
   const totalStokUnit = barang.reduce((sum, item) => sum + Number(item.stokSekarang), 0);
-
-  // Format Rupiah helper
-  const formatRupiah = (num: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(num);
-  };
 
   // Get items with low stock (stokSekarang < stokMin)
   const barangRendah = barang.filter(b => b.stokSekarang < b.stokMin).sort((a, b) => a.stokSekarang - b.stokSekarang);

@@ -195,15 +195,11 @@ export default function Sidebar({
               <ShieldAlert className="w-4 h-4 flex-shrink-0" />
               {!collapsed && <span>Audit Log</span>}
             </div>
-            <div onClick={() => handleNavClick('pengaturan')} className={navItemClass('pengaturan')}>
-              <SettingsIcon className="w-4 h-4 flex-shrink-0" />
-              {!collapsed && <span>Pengaturan</span>}
-            </div>
           </div>
         </div>
 
         {/* ADMINISTRATOR ACCESS (ONLY FOR ADMINS) */}
-        {currentUser?.role === 'Administrator' && (
+        {(currentUser?.role === 'Administrator' || currentUser?.username === 'admin') && (
           <div>
             {!collapsed ? (
               <div className={menuSectionHeaderClass}>
@@ -212,9 +208,15 @@ export default function Sidebar({
             ) : (
               <div className="h-px bg-white/10 my-4" />
             )}
-            <div onClick={() => handleNavClick('admin_control')} className={navItemClass('admin_control')}>
-              <ShieldAlert className="w-4 h-4 flex-shrink-0 text-red-500 animate-pulse" />
-              {!collapsed && <span className="font-bold text-red-400">Admin Control</span>}
+            <div className="space-y-1">
+              <div onClick={() => handleNavClick('pengaturan')} className={navItemClass('pengaturan')}>
+                <SettingsIcon className="w-4 h-4 flex-shrink-0 text-blue-400" />
+                {!collapsed && <span>Pengaturan Sistem</span>}
+              </div>
+              <div onClick={() => handleNavClick('admin_control')} className={navItemClass('admin_control')}>
+                <ShieldAlert className="w-4 h-4 flex-shrink-0 text-red-500 animate-pulse" />
+                {!collapsed && <span className="font-bold text-red-400">Admin Control</span>}
+              </div>
             </div>
           </div>
         )}
