@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, FileText, ArrowDownLeft, Upload, FileUp, AlertCircle, Sparkles, QrCode } from 'lucide-react';
+import { PlusCircle, FileText, ArrowDownLeft, Upload, FileUp, AlertCircle, Sparkles, QrCode, Download } from 'lucide-react';
 import { Barang, Supplier, BarangMasuk, Pegawai } from '../types';
 import QRScannerModal from './QRScannerModal';
 
@@ -376,10 +376,25 @@ export default function TransaksiMasukView({
                       <span className="text-[9px] text-gray-400 block mt-0.5 truncate max-w-[150px]">Oleh: {t.petugas}</span>
                     </td>
                     <td className="p-3">
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-slate-100 border border-slate-200 rounded text-[10px] text-slate-700 font-mono">
-                        <FileText className="w-3 h-3 text-red-500" />
-                        {t.fileDokumen}
-                      </span>
+                      {t.fileData ? (
+                        <a
+                          href={t.fileData}
+                          download={t.fileDokumen || 'Dokumen_Persediaan.pdf'}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 px-2 py-1 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg text-[10px] text-red-700 font-mono font-bold transition-all cursor-pointer"
+                          title="Klik untuk mengunduh / membuka dokumen PDF"
+                        >
+                          <FileText className="w-3.5 h-3.5 text-red-600" />
+                          <span className="truncate max-w-[110px]">{t.fileDokumen}</span>
+                          <Download className="w-3 h-3 text-red-500 shrink-0" />
+                        </a>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-slate-100 border border-slate-200 rounded text-[10px] text-slate-700 font-mono">
+                          <FileText className="w-3 h-3 text-red-500" />
+                          <span className="truncate max-w-[120px]">{t.fileDokumen || '-'}</span>
+                        </span>
+                      )}
                     </td>
                   </tr>
                 ))
