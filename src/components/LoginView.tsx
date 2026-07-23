@@ -137,18 +137,7 @@ export default function LoginView({ accounts, onLoginSuccess, onRegisterAccount 
       <div className="absolute inset-0 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:32px_32px] opacity-[0.04] pointer-events-none" />
 
       {/* 3. Floating Security Shield & Pulse Rings in Background */}
-      <motion.div
-        animate={{
-          y: [-12, 12, -12],
-          rotate: [0, 5, -5, 0]
-        }}
-        transition={{
-          duration: 8,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
-        className="absolute top-12 left-12 hidden lg:flex items-center gap-3 bg-slate-900/60 backdrop-blur-md border border-slate-800/80 px-4 py-2.5 rounded-2xl shadow-xl pointer-events-none z-0"
-      >
+      <div className="absolute top-12 left-12 hidden lg:flex items-center gap-3 bg-slate-900/60 backdrop-blur-md border border-slate-800/80 px-4 py-2.5 rounded-2xl shadow-xl pointer-events-none z-0 animate-pulse">
         <div className="w-8 h-8 rounded-xl bg-blue-500/15 border border-blue-400/30 flex items-center justify-center text-blue-400">
           <Lock className="w-4 h-4" />
         </div>
@@ -156,21 +145,9 @@ export default function LoginView({ accounts, onLoginSuccess, onRegisterAccount 
           <p className="text-[11px] font-bold text-slate-200">Enkripsi BMN Secure</p>
           <p className="text-[9px] text-slate-400 font-mono">Status: Terproteksi Protocol 256-Bit</p>
         </div>
-      </motion.div>
+      </div>
 
-      <motion.div
-        animate={{
-          y: [10, -10, 10],
-          rotate: [0, -4, 4, 0]
-        }}
-        transition={{
-          duration: 9,
-          repeat: Infinity,
-          ease: "easeInOut",
-          delay: 1
-        }}
-        className="absolute bottom-12 right-12 hidden lg:flex items-center gap-3 bg-slate-900/60 backdrop-blur-md border border-slate-800/80 px-4 py-2.5 rounded-2xl shadow-xl pointer-events-none z-0"
-      >
+      <div className="absolute bottom-12 right-12 hidden lg:flex items-center gap-3 bg-slate-900/60 backdrop-blur-md border border-slate-800/80 px-4 py-2.5 rounded-2xl shadow-xl pointer-events-none z-0 animate-pulse" style={{ animationDelay: '1s' }}>
         <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-400/30 flex items-center justify-center text-emerald-400">
           <Server className="w-4 h-4" />
         </div>
@@ -178,7 +155,7 @@ export default function LoginView({ accounts, onLoginSuccess, onRegisterAccount 
           <p className="text-[11px] font-bold text-slate-200">Sistem Logistik BMN</p>
           <p className="text-[9px] text-slate-400 font-mono">Server Cloud Active & Synchronized</p>
         </div>
-      </motion.div>
+      </div>
 
       {/* Main Login Card with Motion Entrance */}
       <motion.div 

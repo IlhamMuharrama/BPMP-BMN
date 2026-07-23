@@ -5,14 +5,15 @@
 
 import React, { useState } from 'react';
 import { Search, Shield, RefreshCcw } from 'lucide-react';
-import { AuditLog } from '../types';
+import { AuditLog, UserAccount } from '../types';
 
 interface AuditLogViewProps {
   logs: AuditLog[];
   onClearLogs: () => void;
+  currentUser: UserAccount;
 }
 
-export default function AuditLogView({ logs, onClearLogs }: AuditLogViewProps) {
+export default function AuditLogView({ logs, onClearLogs, currentUser }: AuditLogViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredLogs = logs.filter(log =>
@@ -37,6 +38,7 @@ export default function AuditLogView({ logs, onClearLogs }: AuditLogViewProps) {
           />
         </div>
 
+        {currentUser.role === 'Administrator' && (
         <button
           onClick={() => {
             if (confirm('Apakah Anda yakin ingin mengarsipkan / mengosongkan seluruh log audit aktivitas lokal?')) {
@@ -47,6 +49,7 @@ export default function AuditLogView({ logs, onClearLogs }: AuditLogViewProps) {
         >
           <RefreshCcw className="w-3.5 h-3.5" /> Kosongkan Log
         </button>
+        )}
       </div>
 
       {/* Terminal logs list */}

@@ -224,7 +224,7 @@ app.post("/api/drive/upload", async (req, res) => {
           body: JSON.stringify({ filename, fileData, folderId })
         });
         
-        const result = await response.json();
+        const result = await response.json() as any;
         if (result.success) {
           return res.json({ success: true, fileId: result.fileId, webViewLink: result.webViewLink, message: "File berhasil diunggah via Apps Script!" });
         }

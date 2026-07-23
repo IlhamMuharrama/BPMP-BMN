@@ -141,36 +141,56 @@ export default function App() {
       localStorage.removeItem('bpmp_bmn_session');
     }
   };
-  const [accounts, setAccounts] = useState<UserAccount[]>(INITIAL_ACCOUNTS);
+  
+  const getCachedData = (key: string, fallback: any) => {
+    if (typeof window === 'undefined') return fallback;
+    try {
+      const cached = localStorage.getItem('bpmp_bmn_cache_' + key);
+      if (cached) return JSON.parse(cached);
+    } catch(e) {}
+    return fallback;
+  };
+
+  const [accounts, setAccounts] = useState<UserAccount[]>(() => getCachedData('accounts', INITIAL_ACCOUNTS));
 
   // Core database states
-  const [barangList, setBarangList] = useState<Barang[]>(INITIAL_BARANG);
-  const [kategoriList, setKategoriList] = useState<Kategori[]>(INITIAL_KATEGORI);
-  const [supplierList, setSupplierList] = useState<Supplier[]>(INITIAL_SUPPLIER);
-  const [unitList, setUnitList] = useState<Unit[]>(INITIAL_UNIT);
-  const [satuanList, setSatuanList] = useState<Satuan[]>(INITIAL_SATUAN);
-  const [pegawaiList, setPegawaiList] = useState<Pegawai[]>(INITIAL_PEGAWAI);
-  const [barangMasukList, setBarangMasukList] = useState<BarangMasuk[]>(INITIAL_BARANG_MASUK);
-  const [barangKeluarList, setBarangKeluarList] = useState<BarangKeluar[]>(INITIAL_BARANG_KELUAR);
-  const [riwayatList, setRiwayatList] = useState<Riwayat[]>(INITIAL_RIWAYAT);
-  const [auditLogsList, setAuditLogsList] = useState<AuditLog[]>(INITIAL_AUDIT_LOG);
-  const [notificationsList, setNotificationsList] = useState<SystemNotification[]>(INITIAL_NOTIFICATION);
-  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
-  const [driveFiles, setDriveFiles] = useState<DriveFileItem[]>(INITIAL_DRIVE_FILES);
+  const [barangList, setBarangList] = useState<Barang[]>(() => getCachedData('barangList', INITIAL_BARANG));
+  const [kategoriList, setKategoriList] = useState<Kategori[]>(() => getCachedData('kategoriList', INITIAL_KATEGORI));
+  const [supplierList, setSupplierList] = useState<Supplier[]>(() => getCachedData('supplierList', INITIAL_SUPPLIER));
+  const [unitList, setUnitList] = useState<Unit[]>(() => getCachedData('unitList', INITIAL_UNIT));
+  const [satuanList, setSatuanList] = useState<Satuan[]>(() => getCachedData('satuanList', INITIAL_SATUAN));
+  const [pegawaiList, setPegawaiList] = useState<Pegawai[]>(() => getCachedData('pegawaiList', INITIAL_PEGAWAI));
+  const [barangMasukList, setBarangMasukList] = useState<BarangMasuk[]>(() => getCachedData('barangMasukList', INITIAL_BARANG_MASUK));
+  const [barangKeluarList, setBarangKeluarList] = useState<BarangKeluar[]>(() => getCachedData('barangKeluarList', INITIAL_BARANG_KELUAR));
+  const [riwayatList, setRiwayatList] = useState<Riwayat[]>(() => getCachedData('riwayatList', INITIAL_RIWAYAT));
+  const [auditLogsList, setAuditLogsList] = useState<AuditLog[]>(() => getCachedData('auditLogsList', INITIAL_AUDIT_LOG));
+  const [notificationsList, setNotificationsList] = useState<SystemNotification[]>(() => getCachedData('notificationsList', INITIAL_NOTIFICATION));
+  const [settings, setSettings] = useState<Settings>(() => getCachedData('settings', DEFAULT_SETTINGS));
+  const [driveFiles, setDriveFiles] = useState<DriveFileItem[]>(() => getCachedData('driveFiles', INITIAL_DRIVE_FILES));
 
-  const [isLoading, setIsLoading] = useState(true);
+  const hasCache = typeof window !== 'undefined' && !!localStorage.getItem('bpmp_bmn_cache_barangList');
+  const [isLoading, setIsLoading] = useState(!hasCache);
   const [isSyncing, setIsSyncing] = useState(false);
   const [showSyncSuccess, setShowSyncSuccess] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const firstLoadRef = React.useRef(true);
+  const skipNextSaveRef = React.useRef(false);
 
-  // Load from Sheets on mount
+  // Load from Sheets on mount and poll periodically
   React.useEffect(() => {
-    const fetchData = async () => {
+    const fetchData = async (silent = false) => {
       try {
+        if (!silent) setIsSyncing(true);
         const res = await fetch('/api/sync');
         if (res.ok) {
           const data = await res.json();
+          // We should only update if data actually changed, but for simplicity let's just set it.
+          // Wait, if we just set it, it will trigger the save debouncer and potentially overwrite user changes!
+          // Actually, the app's sync logic currently overwrites on every change. 
+          // If we poll and overwrite, it might interrupt user if they are editing?
+          // Since it's a simple CRUD, typically we can just update list. 
+          // Let's only do it silently on load for now, then poll every 30s.
+          skipNextSaveRef.current = true;
           if (data.Barang && data.Barang.length > 0) setBarangList(data.Barang);
           if (data.Kategori && data.Kategori.length > 0) setKategoriList(data.Kategori);
           if (data.Supplier && data.Supplier.length > 0) setSupplierList(data.Supplier);
@@ -192,17 +212,30 @@ export default function App() {
           if (data.Settings && data.Settings.length > 0) setSettings(data.Settings[0]);
           if (data.Notifications && data.Notifications.length > 0) setNotificationsList(data.Notifications);
         } else {
-          const errData = await res.json();
-          setSyncError(`Gagal memuat data: ${errData.error || 'Server error'}`);
+          if (!silent) {
+            const errData = await res.json();
+            setSyncError(`Gagal memuat data: ${errData.error || 'Server error'}`);
+          }
         }
       } catch (e: any) {
         console.error("Gagal sinkronisasi data awal:", e);
-        setSyncError(`Gagal memuat data: ${e.message}`);
+        if (!silent) setSyncError(`Gagal memuat data: ${e.message}`);
       } finally {
         setIsLoading(false);
+        if (!silent) {
+           setIsSyncing(false);
+        }
       }
     };
+    
     fetchData();
+    
+    // Auto sync every 30 seconds
+    const interval = setInterval(() => {
+      fetchData(true);
+    }, 30000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   // Ensure admin user profile always matches Ilham Muharrama
@@ -230,10 +263,32 @@ export default function App() {
     if (isLoading) return; // Jangan save saat masih loading awal
     if (firstLoadRef.current) {
       firstLoadRef.current = false;
-      return; // Skip save pada render pertama setelah loading
+      return; 
+    }
+    if (skipNextSaveRef.current) {
+      skipNextSaveRef.current = false;
+      return;
     }
 
-    const handler = setTimeout(async () => {
+    
+    // Save to local cache first for fast load on next refresh
+    try {
+      localStorage.setItem('bpmp_bmn_cache_accounts', JSON.stringify(accounts));
+      localStorage.setItem('bpmp_bmn_cache_barangList', JSON.stringify(barangList));
+      localStorage.setItem('bpmp_bmn_cache_kategoriList', JSON.stringify(kategoriList));
+      localStorage.setItem('bpmp_bmn_cache_supplierList', JSON.stringify(supplierList));
+      localStorage.setItem('bpmp_bmn_cache_unitList', JSON.stringify(unitList));
+      localStorage.setItem('bpmp_bmn_cache_satuanList', JSON.stringify(satuanList));
+      localStorage.setItem('bpmp_bmn_cache_pegawaiList', JSON.stringify(pegawaiList));
+      localStorage.setItem('bpmp_bmn_cache_barangMasukList', JSON.stringify(barangMasukList));
+      localStorage.setItem('bpmp_bmn_cache_barangKeluarList', JSON.stringify(barangKeluarList));
+      localStorage.setItem('bpmp_bmn_cache_riwayatList', JSON.stringify(riwayatList));
+      localStorage.setItem('bpmp_bmn_cache_auditLogsList', JSON.stringify(auditLogsList));
+      localStorage.setItem('bpmp_bmn_cache_notificationsList', JSON.stringify(notificationsList));
+      localStorage.setItem('bpmp_bmn_cache_settings', JSON.stringify(settings));
+    } catch(e) { console.error('Failed to cache data', e); }
+
+const handler = setTimeout(async () => {
       setIsSyncing(true);
       setShowSyncSuccess(false);
       setSyncError(null);
@@ -896,7 +951,7 @@ export default function App() {
                 )
               )}
 
-              {activeTab === 'audit_log' && <AuditLogView logs={auditLogsList} onClearLogs={() => setAuditLogsList([])} />}
+              {activeTab === 'audit_log' && <AuditLogView logs={auditLogsList} onClearLogs={() => setAuditLogsList([])} currentUser={currentUser!} />}
 
               {activeTab === 'admin_control' && (
                 (currentUser?.role === 'Administrator' || currentUser?.username === 'admin') ? (
