@@ -259,6 +259,17 @@ export default function App() {
           })
         );
 
+        // Strip heavy base64 fileData from BarangMasuk and BarangKeluar before sending to Sheets
+        const sanitizedBarangMasuk = (barangMasukList || []).map(item => {
+          const { fileData, ...rest } = item as any;
+          return rest;
+        });
+
+        const sanitizedBarangKeluar = (barangKeluarList || []).map(item => {
+          const { fileData, ...rest } = item as any;
+          return rest;
+        });
+
         const res = await fetch('/api/sync', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -269,8 +280,8 @@ export default function App() {
             Unit: unitList,
             Satuan: satuanList,
             Pegawai: pegawaiList,
-            BarangMasuk: barangMasukList,
-            BarangKeluar: barangKeluarList,
+            BarangMasuk: sanitizedBarangMasuk,
+            BarangKeluar: sanitizedBarangKeluar,
             Riwayat: riwayatList,
             AuditLog: auditLogsList,
             Accounts: accounts,

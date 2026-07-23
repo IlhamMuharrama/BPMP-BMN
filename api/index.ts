@@ -36,11 +36,23 @@ const jsonToSheetData = (jsonArray: any[]) => {
   const headers = Object.keys(jsonArray[0]);
   const rows = jsonArray.map(obj => {
     return headers.map(header => {
+      // Abaikan data binary/base64 besar agar tidak melebihi batas 50,000 karakter sel Google Sheets
+      if (header === 'fileData' || header === 'dataUrl') {
+        return "";
+      }
       let val = obj[header];
       if (typeof val === 'object' || Array.isArray(val)) {
-        return JSON.stringify(val);
+        val = JSON.stringify(val);
       }
-      return val !== null && val !== undefined ? String(val) : "";
+      if (val !== null && val !== undefined) {
+        let strVal = String(val);
+        // Batas maksimum sel Google Sheets adalah 50.000 karakter
+        if (strVal.length > 45000) {
+          strVal = strVal.substring(0, 45000);
+        }
+        return strVal;
+      }
+      return "";
     });
   });
   
