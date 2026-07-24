@@ -25,6 +25,7 @@ import {
   Contact
 } from 'lucide-react';
 import { ActiveTab, UserAccount } from '../types';
+import LogoImage from './LogoImage';
 
 interface SidebarProps {
   activeTab: ActiveTab;
@@ -33,6 +34,7 @@ interface SidebarProps {
   setCollapsed: (collapsed: boolean) => void;
   instituteName: string;
   currentUser: UserAccount | null;
+  logoUrl?: string;
 }
 
 export default function Sidebar({
@@ -41,7 +43,8 @@ export default function Sidebar({
   collapsed,
   setCollapsed,
   instituteName,
-  currentUser
+  currentUser,
+  logoUrl
 }: SidebarProps) {
   const [openMaster, setOpenMaster] = useState(true);
   const [openTransaksi, setOpenTransaksi] = useState(true);
@@ -91,7 +94,7 @@ export default function Sidebar({
         <div className="h-20 border-b border-white/10 flex items-center relative transition-all duration-300 overflow-hidden px-4 shrink-0">
           <div className={`flex items-center whitespace-nowrap w-full transition-all duration-300 ${collapsed ? "gap-0" : "gap-3"}`}>
             <div className={`flex-shrink-0 flex items-center justify-center transition-all duration-300 ${collapsed ? 'w-12 h-12 mx-auto' : 'w-12 h-12'}`}>
-              <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+              <LogoImage logoUrl={logoUrl} alt="Logo BPMP" className="w-full h-full object-contain drop-shadow" />
             </div>
             <div 
               className={`flex flex-col min-w-0 leading-tight transition-all duration-300 overflow-hidden origin-left ${collapsed ? 'opacity-0 w-0 scale-95' : 'opacity-100 w-32 scale-100'}`}

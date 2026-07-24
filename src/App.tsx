@@ -23,6 +23,7 @@ import AuditLogView from './components/AuditLogView';
 import PegawaiView from './components/PegawaiView';
 import LoginView from './components/LoginView';
 import AdminControlView from './components/AdminControlView';
+import LogoImage from './components/LogoImage';
 import ErrorBoundary from './components/ErrorBoundary';
 
 import { compressImage } from './utils/imageCompressor';
@@ -765,6 +766,7 @@ const handler = setTimeout(async () => {
       <>
         <LoginView
           accounts={accounts}
+          logoUrl={settings?.logoUrl}
           onLoginSuccess={(acc) => {
             setIsTransitioning(true);
             setTimeout(() => {
@@ -829,13 +831,10 @@ const handler = setTimeout(async () => {
               {/* Main Loader Content */}
               <div className="relative z-10 flex flex-col items-center">
                 <div className="w-20 h-20 bg-white rounded-2xl shadow-2xl p-4 mb-8 relative flex items-center justify-center">
-                  <motion.img 
-                    src="/logo.png" 
+                  <LogoImage 
+                    logoUrl={settings?.logoUrl}
                     alt="Logo" 
                     className="w-full h-full object-contain"
-                    animate={{ scale: [0.9, 1.05, 0.9] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
                   />
                   {/* Outer spinning ring */}
                   <motion.div
@@ -891,6 +890,7 @@ const handler = setTimeout(async () => {
         setCollapsed={setSidebarCollapsed}
         instituteName={settings.namaInstitusi}
         currentUser={currentUser}
+        logoUrl={settings?.logoUrl}
       />
 
       {/* Main Container */}
@@ -947,6 +947,7 @@ const handler = setTimeout(async () => {
                   onEditBarang={handleEditBarang}
                   onDeleteBarang={handleDeleteBarang}
                   currentUserRole={currentRole}
+                  logoUrl={settings?.logoUrl}
                 />
               )}
 

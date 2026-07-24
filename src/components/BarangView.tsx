@@ -35,6 +35,7 @@ interface BarangViewProps {
   onEditBarang: (id: string, b: Partial<Barang>) => void;
   onDeleteBarang: (id: string) => void;
   currentUserRole: string;
+  logoUrl?: string;
 }
 
 export default function BarangView({
@@ -45,7 +46,8 @@ export default function BarangView({
   onAddBarang,
   onEditBarang,
   onDeleteBarang,
-  currentUserRole
+  currentUserRole,
+  logoUrl
 }: BarangViewProps) {
   // Search & Filter State
   const [searchTerm, setSearchTerm] = useState('');
@@ -459,7 +461,7 @@ export default function BarangView({
                     level={"H"}
                     style={{ width: '130px', height: '130px' }}
                     imageSettings={{
-                      src: "/logo.png",
+                      src: logoUrl || 'https://upload.wikimedia.org/wikipedia/commons/9/9c/Logo_Kementerian_Pendidikan_dan_Kebudayaan.png',
                       x: undefined,
                       y: undefined,
                       height: 140,

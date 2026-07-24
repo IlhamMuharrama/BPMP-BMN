@@ -7,14 +7,16 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Shield, Key, User, Phone, Briefcase, Mail, CheckCircle, ExternalLink, ArrowRight, BookOpen, Lock, Sparkles, Server } from 'lucide-react';
 import { UserAccount } from '../types';
+import LogoImage from './LogoImage';
 
 interface LoginViewProps {
   accounts: UserAccount[];
   onLoginSuccess: (account: UserAccount) => void;
   onRegisterAccount: (newAcc: UserAccount) => void;
+  logoUrl?: string;
 }
 
-export default function LoginView({ accounts, onLoginSuccess, onRegisterAccount }: LoginViewProps) {
+export default function LoginView({ accounts, onLoginSuccess, onRegisterAccount, logoUrl }: LoginViewProps) {
   const [isRegister, setIsRegister] = useState(false);
   
   // Login Form States
@@ -173,7 +175,7 @@ export default function LoginView({ accounts, onLoginSuccess, onRegisterAccount 
             whileHover={{ scale: 1.05 }}
             className="w-32 h-32 flex items-center justify-center drop-shadow-2xl mb-5 relative"
           >
-            <img src="/logo.png" alt="Logo" className="w-full h-full object-contain drop-shadow-lg z-10" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+            <LogoImage logoUrl={logoUrl} alt="Logo SILAP BMN" className="w-full h-full object-contain drop-shadow-lg z-10" />
           </motion.div>
           
           <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2 justify-center">
