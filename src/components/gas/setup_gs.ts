@@ -167,7 +167,7 @@ function seedInitialData(name, sheet, driveSettings) {
   }
   else if (name === "Settings") {
     sheet.appendRow(["NAMA_INSTITUSI", "BPMP Provinsi Sumatera Selatan", "Nama Lembaga Resmi"]);
-    sheet.appendRow(["LOGO_URL", "https://upload.wikimedia.org/wikipedia/commons/9/9c/Logo_Kementerian_Pendidikan_dan_Kebudayaan.png", "Logo Kop Surat"]);
+    sheet.appendRow(["LOGO_URL", "/logo.png", "Logo Kop Surat"]);
     sheet.appendRow(["FOLDER_QR_ID", driveSettings.QRCodes, "Folder ID QR Codes"]);
     sheet.appendRow(["FOLDER_IMAGES_ID", driveSettings.Images, "Folder ID Images"]);
     sheet.appendRow(["FOLDER_LAPORAN_ID", driveSettings.Laporan, "Folder ID Laporan"]);

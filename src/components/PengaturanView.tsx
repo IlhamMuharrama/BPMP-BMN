@@ -51,7 +51,7 @@ export default function PengaturanView({
     namaPenanggungJawab: settings.namaPenanggungJawab || 'Ilham Muharrama',
     jabatanPenanggungJawab: settings.jabatanPenanggungJawab || 'Magang/KP / Petugas BMN',
     nipPenanggungJawab: settings.nipPenanggungJawab || '-',
-    logoUrl: settings.logoUrl || 'https://upload.wikimedia.org/wikipedia/commons/9/9c/Logo_Kementerian_Pendidikan_dan_Kebudayaan.png',
+    logoUrl: (settings.logoUrl && !settings.logoUrl.includes('upload.wikimedia.org')) ? settings.logoUrl : '/logo.png',
     prefiksKodeBarang: settings.prefiksKodeBarang || 'BRG-',
     defaultStokMin: settings.defaultStokMin || 5,
     autoSyncIntervalSec: settings.autoSyncIntervalSec || 2,

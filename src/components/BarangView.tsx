@@ -23,6 +23,7 @@ import {
   PackageCheck
 } from 'lucide-react';
 import { Barang, Kategori, Supplier, Satuan } from '../types';
+import defaultLogo from '../assets/logo.png';
 import { QRCodeCanvas } from 'qrcode.react';
 import ImagePicker from './ImagePicker';
 
@@ -461,7 +462,7 @@ export default function BarangView({
                     level={"H"}
                     style={{ width: '130px', height: '130px' }}
                     imageSettings={{
-                      src: logoUrl || 'https://upload.wikimedia.org/wikipedia/commons/9/9c/Logo_Kementerian_Pendidikan_dan_Kebudayaan.png',
+                      src: (!logoUrl || logoUrl.includes('upload.wikimedia.org')) ? defaultLogo : logoUrl,
                       x: undefined,
                       y: undefined,
                       height: 140,

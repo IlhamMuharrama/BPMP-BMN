@@ -166,7 +166,13 @@ export default function App() {
   const [riwayatList, setRiwayatList] = useState<Riwayat[]>(() => getCachedData('riwayatList', INITIAL_RIWAYAT));
   const [auditLogsList, setAuditLogsList] = useState<AuditLog[]>(() => getCachedData('auditLogsList', INITIAL_AUDIT_LOG));
   const [notificationsList, setNotificationsList] = useState<SystemNotification[]>(() => getCachedData('notificationsList', INITIAL_NOTIFICATION));
-  const [settings, setSettings] = useState<Settings>(() => getCachedData('settings', DEFAULT_SETTINGS));
+  const [settings, setSettings] = useState<Settings>(() => {
+    const cached = getCachedData('settings', DEFAULT_SETTINGS);
+    if (!cached.logoUrl || cached.logoUrl.includes('upload.wikimedia.org')) {
+      cached.logoUrl = '/logo.png';
+    }
+    return cached;
+  });
   const [driveFiles, setDriveFiles] = useState<DriveFileItem[]>(() => getCachedData('driveFiles', INITIAL_DRIVE_FILES));
 
   const hasCache = typeof window !== 'undefined' && !!localStorage.getItem('bpmp_bmn_cache_barangList');

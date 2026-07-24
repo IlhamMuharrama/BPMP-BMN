@@ -321,7 +321,7 @@ export const DEFAULT_SETTINGS: Settings = {
   namaPenanggungJawab: 'Ilham Muharrama',
   jabatanPenanggungJawab: 'Magang/KP / Petugas BMN',
   nipPenanggungJawab: '-',
-  logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/9/9c/Logo_Kementerian_Pendidikan_dan_Kebudayaan.png',
+  logoUrl: '/logo.png',
   prefiksKodeBarang: 'BRG-',
   defaultStokMin: 5,
   autoSyncIntervalSec: 2,
