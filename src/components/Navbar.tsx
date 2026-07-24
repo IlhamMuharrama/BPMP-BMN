@@ -4,7 +4,8 @@
  */
 
 import React, { useState } from 'react';
-import { Bell, Search, User, Shield, Menu, ChevronDown, Check, CheckSquare, LogOut } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Bell, Search, User, Shield, Menu, ChevronDown, Check, CheckSquare, LogOut, AlertTriangle, X } from 'lucide-react';
 import { ActiveTab, SystemNotification, UserAccount } from '../types';
 
 interface NavbarProps {
@@ -27,6 +28,7 @@ export default function Navbar({
   setNotifications
 }: NavbarProps) {
   const [showNotificationPopover, setShowNotificationPopover] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const getPageTitle = () => {
     switch (activeTab) {
@@ -224,7 +226,7 @@ export default function Navbar({
 
         {/* LOGOUT BUTTON */}
         <button
-          onClick={onLogout}
+          onClick={() => setShowLogoutConfirm(true)}
           className="flex items-center gap-1 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
           title="Keluar Aplikasi"
         >
@@ -232,6 +234,54 @@ export default function Navbar({
           <span className="hidden sm:inline">Keluar</span>
         </button>
       </div>
+    
+      <AnimatePresence>
+        {showLogoutConfirm && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowLogoutConfirm(false)}
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-white rounded-2xl shadow-xl z-50 overflow-hidden"
+            >
+              <div className="p-6">
+                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-4 mx-auto">
+                  <AlertTriangle className="w-6 h-6 text-red-600" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 text-center mb-2">Konfirmasi Keluar</h3>
+                <p className="text-sm text-slate-500 text-center mb-6">
+                  Apakah Anda yakin ingin keluar dari sesi saat ini? Anda harus masuk kembali untuk mengakses sistem.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowLogoutConfirm(false)}
+                    className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition-colors cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowLogoutConfirm(false);
+                      onLogout();
+                    }}
+                    className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-sm transition-colors shadow-sm cursor-pointer"
+                  >
+                    Ya, Keluar
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
     </header>
   );
 }

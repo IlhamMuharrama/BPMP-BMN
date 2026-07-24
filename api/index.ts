@@ -92,9 +92,24 @@ const sheetDataToJson = (rows: any[][]) => {
 // ENDPOINT UNTUK SYNC DATA KE SPREADSHEET
 // ==========================================
 
+
+// ==========================================
+// IN-MEMORY CACHE UNTUK MENGURANGI KUOTA SPREADSHEET
+// ==========================================
+let memoryCache = null;
+let memoryVersion = 0;
+
+app.get("/api/sync/version", (req, res) => {
+  res.json({ version: memoryVersion });
+});
+
 // 1. MENGAMBIL SELURUH DATA DARI SPREADSHEET
 app.get("/api/sync", async (req, res) => {
   try {
+    if (memoryCache && req.query.force !== '1') {
+      return res.json(memoryCache);
+    }
+
     if (!SPREADSHEET_ID) throw new Error("SPREADSHEET_ID tidak dikonfigurasi. Pastikan Environment Variable di Vercel sudah diatur.");
 
     // Coba ambil info spreadsheet untuk memastikan sheet ada
@@ -122,6 +137,7 @@ app.get("/api/sync", async (req, res) => {
       }
     }
 
+    memoryCache = allData;
     res.json(allData);
   } catch (error: any) {
     console.error("Gagal mengambil data dari Spreadsheet:", error);
@@ -198,6 +214,8 @@ app.post("/api/sync", async (req, res) => {
       });
     }
 
+    memoryCache = incomingData;
+    memoryVersion++;
     res.json({ success: true, message: "Data berhasil disinkronisasi ke Google Spreadsheet." });
   } catch (error: any) {
     console.error("Gagal menyimpan data ke Spreadsheet:", error);

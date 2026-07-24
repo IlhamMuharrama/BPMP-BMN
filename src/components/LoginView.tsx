@@ -170,11 +170,10 @@ export default function LoginView({ accounts, onLoginSuccess, onRegisterAccount 
         {/* LOGO & TITLE HEADER */}
         <div className="flex flex-col items-center text-center mb-7">
           <motion.div 
-            whileHover={{ scale: 1.05, rotate: 2 }}
-            className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 flex items-center justify-center shadow-lg shadow-blue-500/25 mb-3.5 border border-blue-400/40 relative group cursor-pointer"
+            whileHover={{ scale: 1.05 }}
+            className="w-32 h-32 flex items-center justify-center drop-shadow-2xl mb-5 relative"
           >
-            <Shield className="w-8 h-8 text-white" />
-            <Sparkles className="w-4 h-4 text-amber-300 absolute -top-1 -right-1 animate-pulse" />
+            <img src="/logo.png" alt="Logo" className="w-full h-full object-contain drop-shadow-lg z-10" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
           </motion.div>
           
           <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2 justify-center">

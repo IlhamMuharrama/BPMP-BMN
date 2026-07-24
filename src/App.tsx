@@ -170,26 +170,24 @@ export default function App() {
 
   const hasCache = typeof window !== 'undefined' && !!localStorage.getItem('bpmp_bmn_cache_barangList');
   const [isLoading, setIsLoading] = useState(!hasCache);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [showSyncSuccess, setShowSyncSuccess] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const firstLoadRef = React.useRef(true);
   const skipNextSaveRef = React.useRef(false);
 
+  const serverVersionRef = React.useRef(0);
+
   // Load from Sheets on mount and poll periodically
   React.useEffect(() => {
-    const fetchData = async (silent = false) => {
+    const fetchData = async (silent = false, force = false) => {
       try {
         if (!silent) setIsSyncing(true);
-        const res = await fetch('/api/sync');
+        const url = force ? '/api/sync?force=1' : '/api/sync';
+        const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
-          // We should only update if data actually changed, but for simplicity let's just set it.
-          // Wait, if we just set it, it will trigger the save debouncer and potentially overwrite user changes!
-          // Actually, the app's sync logic currently overwrites on every change. 
-          // If we poll and overwrite, it might interrupt user if they are editing?
-          // Since it's a simple CRUD, typically we can just update list. 
-          // Let's only do it silently on load for now, then poll every 30s.
           skipNextSaveRef.current = true;
           if (data.Barang && data.Barang.length > 0) setBarangList(data.Barang);
           if (data.Kategori && data.Kategori.length > 0) setKategoriList(data.Kategori);
@@ -228,12 +226,27 @@ export default function App() {
       }
     };
     
-    fetchData();
+    // Initial fetch from Google Sheets
+    fetchData(false, true);
     
-    // Auto sync every 30 seconds
-    const interval = setInterval(() => {
-      fetchData(true);
-    }, 300000);
+    // Realtime polling endpoint
+    const pollVersion = async () => {
+      try {
+        const res = await fetch('/api/sync/version');
+        if (res.ok) {
+          const data = await res.json();
+          // If server version is greater than our known version, we need to fetch updates!
+          if (data.version > serverVersionRef.current) {
+            serverVersionRef.current = data.version;
+            // Fetch updates silently from server memory cache
+            fetchData(true, false);
+          }
+        }
+      } catch(e) {}
+    };
+
+    // Auto sync check every 2.5 seconds for snappy realtime feeling
+    const interval = setInterval(pollVersion, 2500);
     
     return () => clearInterval(interval);
   }, []);
@@ -747,28 +760,124 @@ const handler = setTimeout(async () => {
     );
   }
 
-  if (!currentUser) {
+    if (!currentUser) {
     return (
-      <LoginView
-        accounts={accounts}
-        onLoginSuccess={(acc) => {
-          handleSetCurrentUser(acc);
-          setActiveTab('dashboard');
-          // Write login log
-          const newLog: AuditLog = {
-            id: `LOG-${Date.now().toString().slice(-6)}`,
-            tanggal: new Date().toISOString(),
-            aktor: acc.nama,
-            role: acc.role,
-            aksi: 'Login',
-            detail: `Sesi login baru dimulai oleh ${acc.nama} (${acc.role}) pada peranti desktop`
-          };
-          setAuditLogsList(prev => [newLog, ...prev]);
-        }}
-        onRegisterAccount={(newAcc) => {
-          setAccounts(prev => [...prev, newAcc]);
-        }}
-      />
+      <>
+        <LoginView
+          accounts={accounts}
+          onLoginSuccess={(acc) => {
+            setIsTransitioning(true);
+            setTimeout(() => {
+              handleSetCurrentUser(acc);
+              setActiveTab('dashboard');
+              // Write login log
+              const newLog: AuditLog = {
+                id: `LOG-${Date.now().toString().slice(-6)}`,
+                tanggal: new Date().toISOString(),
+                aktor: acc.nama,
+                role: acc.role,
+                aksi: 'Login',
+                detail: `Sesi login baru dimulai oleh ${acc.nama} (${acc.role}) pada peranti desktop`
+              };
+              setAuditLogsList(prev => [newLog, ...prev]);
+              setIsTransitioning(false);
+            }, 2000);
+          }}
+          onRegisterAccount={(newAcc) => {
+            setAccounts(prev => [...prev, newAcc]);
+          }}
+        />
+
+        {/* Transition Overlay */}
+        <AnimatePresence>
+          {isTransitioning && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] bg-slate-900 flex flex-col items-center justify-center overflow-hidden"
+            >
+              {/* Decorative Background Elements */}
+              <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <motion.div
+                  animate={{ 
+                    scale: [1, 1.2, 1],
+                    opacity: [0.3, 0.5, 0.3],
+                  }}
+                  transition={{
+                    duration: 3,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                  className="absolute -top-[20%] -right-[10%] w-[70vw] h-[70vw] rounded-full bg-blue-600/20 blur-3xl"
+                />
+                <motion.div
+                  animate={{ 
+                    scale: [1, 1.5, 1],
+                    opacity: [0.2, 0.4, 0.2],
+                  }}
+                  transition={{
+                    duration: 4,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: 1
+                  }}
+                  className="absolute -bottom-[20%] -left-[10%] w-[60vw] h-[60vw] rounded-full bg-indigo-600/20 blur-3xl"
+                />
+              </div>
+
+              {/* Main Loader Content */}
+              <div className="relative z-10 flex flex-col items-center">
+                <div className="w-20 h-20 bg-white rounded-2xl shadow-2xl p-4 mb-8 relative flex items-center justify-center">
+                  <motion.img 
+                    src="/logo.png" 
+                    alt="Logo" 
+                    className="w-full h-full object-contain"
+                    animate={{ scale: [0.9, 1.05, 0.9] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  />
+                  {/* Outer spinning ring */}
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                    className="absolute inset-[-12px] rounded-[1.25rem] border-2 border-transparent border-t-blue-500 border-r-blue-500 opacity-80"
+                  />
+                  <motion.div
+                    animate={{ rotate: -360 }}
+                    transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                    className="absolute inset-[-20px] rounded-[1.5rem] border-2 border-transparent border-b-indigo-500 border-l-indigo-500 opacity-60"
+                  />
+                </div>
+                
+                <h2 className="text-2xl font-bold text-white tracking-tight mb-2">
+                  Menyiapkan Ruang Kerja Anda
+                </h2>
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-1.5">
+                    {[0, 1, 2].map((i) => (
+                      <motion.div
+                        key={i}
+                        animate={{ y: [0, -6, 0] }}
+                        transition={{
+                          duration: 0.6,
+                          repeat: Infinity,
+                          delay: i * 0.15,
+                          ease: "easeInOut"
+                        }}
+                        className="w-2 h-2 bg-blue-400 rounded-full"
+                      />
+                    ))}
+                  </div>
+                  <span className="text-sm font-medium text-blue-200 tracking-wide ml-2">
+                    Mengautentikasi pengguna...
+                  </span>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </>
     );
   }
 

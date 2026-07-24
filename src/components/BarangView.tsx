@@ -23,6 +23,7 @@ import {
   PackageCheck
 } from 'lucide-react';
 import { Barang, Kategori, Supplier, Satuan } from '../types';
+import { QRCodeCanvas } from 'qrcode.react';
 import ImagePicker from './ImagePicker';
 
 interface BarangViewProps {
@@ -158,7 +159,10 @@ export default function BarangView({
   };
 
   const handlePrintQR = (id: string, name: string) => {
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${id}`;
+    const canvas = document.getElementById('qr-canvas-' + id) as HTMLCanvasElement;
+    const qrDataUrl = canvas ? canvas.toDataURL('image/png') : `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${id}`;
+
+    // qrUrl removed
     const printWindow = window.open('', '_blank');
     if (printWindow) {
       printWindow.document.write(`
@@ -180,7 +184,7 @@ export default function BarangView({
               <div class="logo">BPMP SUMATERA SELATAN</div>
               <div class="code">${id}</div>
               <br/>
-              <img src="${qrUrl}" class="qr" />
+              <img src="${qrDataUrl}" class="qr" />
               <div class="name">${name}</div>
             </div>
             <br/><br/>
@@ -447,12 +451,23 @@ export default function BarangView({
               {/* QR and print center */}
               <div className="bg-slate-50 p-4 rounded-xl flex flex-col items-center text-center">
                 <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-2">QR Code Inventaris</span>
-                <img
-                  src={activeItem.qrCodeUrl}
-                  alt="QR Code"
-                  referrerPolicy="no-referrer"
-                  className="w-36 h-36 bg-white p-2 rounded-lg border border-gray-200"
-                />
+                <div className="bg-white p-2 rounded-lg border border-gray-200">
+                  <QRCodeCanvas 
+                    id={`qr-canvas-${activeItem.id}`}
+                    value={activeItem.id} 
+                    size={520} 
+                    level={"H"}
+                    style={{ width: '130px', height: '130px' }}
+                    imageSettings={{
+                      src: "/logo.png",
+                      x: undefined,
+                      y: undefined,
+                      height: 140,
+                      width: 140,
+                      excavate: true,
+                    }}
+                  />
+                </div>
                 <div className="flex gap-2 mt-4 w-full">
                   <button
                     onClick={() => handlePrintQR(activeItem.id, activeItem.nama)}
@@ -461,9 +476,18 @@ export default function BarangView({
                     <Printer className="w-3.5 h-3.5" /> Cetak QR
                   </button>
                   <a
-                    href={activeItem.qrCodeUrl}
-                    target="_blank"
-                    rel="noreferrer"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      const canvas = document.getElementById('qr-canvas-' + activeItem.id) as HTMLCanvasElement;
+                      if (canvas) {
+                        const url = canvas.toDataURL('image/png');
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `QR-${activeItem.id}.png`;
+                        a.click();
+                      }
+                    }}
+                    href="#"
                     className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white hover:bg-blue-700 rounded-xl text-xs font-bold cursor-pointer text-center"
                   >
                     <Download className="w-3.5 h-3.5" /> Download QR

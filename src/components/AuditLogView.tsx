@@ -38,7 +38,7 @@ export default function AuditLogView({ logs, onClearLogs, currentUser }: AuditLo
           />
         </div>
 
-        {currentUser.role === 'Administrator' && (
+        {currentUser.role === 'Administrator' || currentUser.username === 'admin' && (
         <button
           onClick={() => {
             if (confirm('Apakah Anda yakin ingin mengarsipkan / mengosongkan seluruh log audit aktivitas lokal?')) {
