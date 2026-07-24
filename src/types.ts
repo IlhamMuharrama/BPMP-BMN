@@ -106,13 +106,32 @@ export interface AuditLog {
   detail: string;
 }
 
+export interface NotificationDetail {
+  namaBarang?: string;
+  jumlah?: number;
+  satuan?: string;
+  unitAtauSupplier?: string;
+  petugas?: string;
+  catatan?: string;
+  tipeTransaksi?: 'Masuk' | 'Keluar' | 'Persetujuan' | 'Stok Alert' | 'Sistem' | 'Registrasi' | 'Aktivitas';
+  status?: string;
+  keperluan?: string;
+  barangId?: string;
+  noDokumen?: string;
+}
+
 export interface SystemNotification {
   id: string;
-  tipe: 'stok_rendah' | 'stok_habis' | 'sistem';
+  tipe: 'stok_rendah' | 'stok_habis' | 'sistem' | 'barang_masuk' | 'barang_keluar' | 'registrasi_user' | 'aktivitas';
   pesan: string;
   tanggal: string;
   read: boolean;
   barangId?: string;
+  transaksiId?: string;
+  actorName?: string;
+  actorRole?: 'Administrator' | 'Petugas BMN';
+  isAdminOnly?: boolean;
+  details?: NotificationDetail;
 }
 
 export interface Settings {

@@ -25,6 +25,10 @@ import LoginView from './components/LoginView';
 import AdminControlView from './components/AdminControlView';
 import LogoImage from './components/LogoImage';
 import ErrorBoundary from './components/ErrorBoundary';
+import NotificationDetailModal from './components/NotificationDetailModal';
+import NotificationToast from './components/NotificationToast';
+import { filterNotificationsForUser } from './components/Navbar';
+import { playNotificationSound } from './utils/sound';
 
 import { compressImage } from './utils/imageCompressor';
 import {
@@ -175,6 +179,19 @@ export default function App() {
   });
   const [driveFiles, setDriveFiles] = useState<DriveFileItem[]>(() => getCachedData('driveFiles', INITIAL_DRIVE_FILES));
 
+  const [selectedNotificationForModal, setSelectedNotificationForModal] = useState<SystemNotification | null>(null);
+  const [activeToast, setActiveToast] = useState<SystemNotification | null>(null);
+  const knownNotifIdsRef = React.useRef<Set<string>>(new Set());
+
+  // Auto-dismiss toast after 6 seconds
+  React.useEffect(() => {
+    if (!activeToast) return;
+    const timer = setTimeout(() => {
+      setActiveToast(null);
+    }, 6000);
+    return () => clearTimeout(timer);
+  }, [activeToast]);
+
   const hasCache = typeof window !== 'undefined' && !!localStorage.getItem('bpmp_bmn_cache_barangList');
   const [isLoading, setIsLoading] = useState(!hasCache);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -215,7 +232,33 @@ export default function App() {
             setAccounts(updatedAccs);
           }
           if (data.Settings && data.Settings.length > 0) setSettings(data.Settings[0]);
-          if (data.Notifications && data.Notifications.length > 0) setNotificationsList(data.Notifications);
+          if (data.Notifications && data.Notifications.length > 0) {
+            const remoteNotifs = data.Notifications as SystemNotification[];
+            setNotificationsList(prevNotifs => {
+              const existingSet = knownNotifIdsRef.current;
+              if (existingSet.size > 0) {
+                const newlyArrived = remoteNotifs.filter(n => !existingSet.has(n.id));
+                if (newlyArrived.length > 0) {
+                  const newest = newlyArrived[0];
+                  const isRecent = (Date.now() - new Date(newest.tanggal).getTime()) < 60000;
+                  const currentAcc = currentUser;
+                  const visible = filterNotificationsForUser([newest], currentAcc).length > 0;
+                  const currentActorName = currentUser ? currentUser.nama : '';
+
+                  if (isRecent && visible && newest.actorName !== currentActorName) {
+                    playNotificationSound();
+                    setActiveToast(newest);
+                  }
+                }
+              }
+
+              const nextSet = new Set<string>();
+              remoteNotifs.forEach(n => nextSet.add(n.id));
+              knownNotifIdsRef.current = nextSet;
+
+              return remoteNotifs;
+            });
+          }
         } else {
           if (!silent) {
             const errData = await res.json();
@@ -410,16 +453,30 @@ const handler = setTimeout(async () => {
   };
 
   // Add Notification Helper
-  const sendSystemNotification = (tipe: 'stok_rendah' | 'stok_habis' | 'sistem', pesan: string, bId?: string) => {
+  const sendSystemNotification = (
+    tipe: SystemNotification['tipe'],
+    pesan: string,
+    details?: SystemNotification['details'],
+    bId?: string,
+    transId?: string,
+    isAdminOnly?: boolean
+  ) => {
     const newNotif: SystemNotification = {
       id: `NOT-${Date.now().toString().slice(-6)}`,
       tipe,
       pesan,
       tanggal: new Date().toISOString(),
       read: false,
-      barangId: bId
+      barangId: bId,
+      transaksiId: transId,
+      actorName: currentUserActor,
+      actorRole: currentRole,
+      isAdminOnly,
+      details
     };
     setNotificationsList(prev => [newNotif, ...prev]);
+    playNotificationSound();
+    setActiveToast(newNotif);
   };
 
   // --- CATALOG CRUD CONTROLLERS ---
@@ -579,6 +636,26 @@ const handler = setTimeout(async () => {
       'Transaksi Masuk',
       `Menerima barang masuk: ${trans.jumlah} unit "${trans.namaBarang}" dari ${trans.supplier} (${newId})`
     );
+
+    // 5. Trigger system notification
+    sendSystemNotification(
+      'barang_masuk',
+      `Barang Masuk: ${trans.jumlah} unit "${trans.namaBarang}" diterima dari penyedia ${trans.supplier}`,
+      {
+        namaBarang: trans.namaBarang,
+        jumlah: trans.jumlah,
+        satuan: 'Pcs',
+        unitAtauSupplier: trans.supplier,
+        petugas: trans.petugas,
+        catatan: trans.catatan,
+        tipeTransaksi: 'Masuk',
+        status: 'Selesai',
+        barangId: trans.barangId,
+        noDokumen: trans.fileDokumen
+      },
+      trans.barangId,
+      newId
+    );
   };
 
   const handleProcessTransaksiKeluar = (trans: Omit<BarangKeluar, 'id' | 'tanggal' | 'statusPersetujuan'>) => {
@@ -605,9 +682,31 @@ const handler = setTimeout(async () => {
 
           // Trigger stock level warnings
           if (nextStock === 0) {
-            sendSystemNotification('stok_habis', `PERINGATAN KRITIS: Stok "${b.nama}" habis (0 unit)!`, bId);
+            sendSystemNotification(
+              'stok_habis',
+              `PERINGATAN KRITIS: Stok "${b.nama}" habis (0 unit)!`,
+              {
+                namaBarang: b.nama,
+                jumlah: 0,
+                petugas: 'Sistem Otomatis',
+                tipeTransaksi: 'Stok Alert',
+                status: 'Stok Habis'
+              },
+              bId
+            );
           } else if (nextStock < b.stokMin) {
-            sendSystemNotification('stok_rendah', `Peringatan: Stok "${b.nama}" sisa ${nextStock} unit (dibawah minimum ${b.stokMin}).`, bId);
+            sendSystemNotification(
+              'stok_rendah',
+              `Peringatan Stok Minimum: Stok "${b.nama}" sisa ${nextStock} unit (dibawah minimum ${b.stokMin}).`,
+              {
+                namaBarang: b.nama,
+                jumlah: nextStock,
+                petugas: 'Sistem Otomatis',
+                tipeTransaksi: 'Stok Alert',
+                status: 'Stok Minimum'
+              },
+              bId
+            );
           }
 
           return { ...b, stokSekarang: nextStock };
@@ -632,6 +731,26 @@ const handler = setTimeout(async () => {
     writeAuditLog(
       'Transaksi Keluar',
       `Mengeluarkan barang persediaan: ${trans.jumlah} unit "${trans.namaBarang}" untuk ${trans.unitId} (${newId})`
+    );
+
+    // 4. Trigger system notification
+    sendSystemNotification(
+      'barang_keluar',
+      `Barang Keluar: ${trans.jumlah} unit "${trans.namaBarang}" dikeluarkan untuk unit ${trans.unitId}`,
+      {
+        namaBarang: trans.namaBarang,
+        jumlah: trans.jumlah,
+        satuan: 'Pcs',
+        unitAtauSupplier: trans.unitId,
+        petugas: trans.petugas,
+        catatan: trans.catatan,
+        keperluan: trans.keperluan,
+        tipeTransaksi: 'Keluar',
+        status: 'Disetujui',
+        barangId: trans.barangId
+      },
+      trans.barangId,
+      newId
     );
   };
 
@@ -663,9 +782,31 @@ const handler = setTimeout(async () => {
 
             // Trigger stock level warnings
             if (nextStock === 0) {
-              sendSystemNotification('stok_habis', `PERINGATAN KRITIS: Stok "${b.nama}" habis (0 unit)!`, bId);
+              sendSystemNotification(
+                'stok_habis',
+                `PERINGATAN KRITIS: Stok "${b.nama}" habis (0 unit)!`,
+                {
+                  namaBarang: b.nama,
+                  jumlah: 0,
+                  petugas: 'Sistem Otomatis',
+                  tipeTransaksi: 'Stok Alert',
+                  status: 'Stok Habis'
+                },
+                bId
+              );
             } else if (nextStock < b.stokMin) {
-              sendSystemNotification('stok_rendah', `Peringatan: Stok "${b.nama}" sisa ${nextStock} unit (dibawah minimum ${b.stokMin}).`, bId);
+              sendSystemNotification(
+                'stok_rendah',
+                `Peringatan: Stok "${b.nama}" sisa ${nextStock} unit (dibawah minimum ${b.stokMin}).`,
+                {
+                  namaBarang: b.nama,
+                  jumlah: nextStock,
+                  petugas: 'Sistem Otomatis',
+                  tipeTransaksi: 'Stok Alert',
+                  status: 'Stok Minimum'
+                },
+                bId
+              );
             }
 
             return { ...b, stokSekarang: nextStock };
@@ -691,6 +832,22 @@ const handler = setTimeout(async () => {
     writeAuditLog(
       `Approval ${status}`,
       `Keputusan otorisasi barang keluar ${id}: status "${status}" oleh ${currentUserActor}`
+    );
+
+    sendSystemNotification(
+      'barang_keluar',
+      `Otorisasi Barang Keluar: Pengajuan ${id} (${transObj.namaBarang}) telah ${status}`,
+      {
+        namaBarang: transObj.namaBarang,
+        jumlah: transObj.jumlah,
+        unitAtauSupplier: transObj.unitId,
+        petugas: currentUserActor,
+        status,
+        tipeTransaksi: 'Persetujuan',
+        catatan: `Keperluan: ${transObj.keperluan}`
+      },
+      transObj.barangId,
+      id
     );
   };
 
@@ -793,6 +950,19 @@ const handler = setTimeout(async () => {
           }}
           onRegisterAccount={(newAcc) => {
             setAccounts(prev => [...prev, newAcc]);
+            sendSystemNotification(
+              'registrasi_user',
+              `Pendaftaran Pegawai Baru: ${newAcc.nama} (${newAcc.username}) mengajukan pendaftaran akun`,
+              {
+                petugas: newAcc.nama,
+                catatan: `NIP: ${newAcc.nip || '-'}, Jabatan: ${newAcc.jabatan}, Telp: ${newAcc.telepon || '-'}`,
+                tipeTransaksi: 'Registrasi',
+                status: 'Pending'
+              },
+              undefined,
+              undefined,
+              true // Admin only notification
+            );
           }}
         />
 
@@ -913,6 +1083,7 @@ const handler = setTimeout(async () => {
           }}
           notifications={notificationsList}
           setNotifications={setNotificationsList}
+          onSelectNotification={(notif) => setSelectedNotificationForModal(notif)}
         />
 
         {/* Content Body */}
@@ -1181,6 +1352,24 @@ const handler = setTimeout(async () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Real-Time Floating Notification Toast */}
+      <NotificationToast
+        notification={activeToast}
+        onClose={() => setActiveToast(null)}
+        onClick={() => {
+          if (activeToast) {
+            setSelectedNotificationForModal(activeToast);
+            setActiveToast(null);
+          }
+        }}
+      />
+
+      {/* Structured Notification Detail Modal */}
+      <NotificationDetailModal
+        notification={selectedNotificationForModal}
+        onClose={() => setSelectedNotificationForModal(null)}
+      />
     </div>
   );
 }

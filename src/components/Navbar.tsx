@@ -5,7 +5,10 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Bell, Search, User, Shield, Menu, ChevronDown, Check, CheckSquare, LogOut, AlertTriangle, X } from 'lucide-react';
+import { 
+  Bell, Search, User, Shield, Menu, ChevronDown, Check, CheckSquare, LogOut, AlertTriangle, X,
+  ArrowDownLeft, ArrowUpRight, ShieldAlert, UserPlus, Info, ChevronRight
+} from 'lucide-react';
 import { ActiveTab, SystemNotification, UserAccount } from '../types';
 
 interface NavbarProps {
@@ -16,6 +19,21 @@ interface NavbarProps {
   onLogout: () => void;
   notifications: SystemNotification[];
   setNotifications: React.Dispatch<React.SetStateAction<SystemNotification[]>>;
+  onSelectNotification?: (notification: SystemNotification) => void;
+}
+
+export function filterNotificationsForUser(notifications: SystemNotification[], user: UserAccount | null): SystemNotification[] {
+  if (!notifications) return [];
+  if (!user || user.role === 'Administrator') {
+    return notifications; // Admin sees all
+  }
+  return notifications.filter(n => {
+    if (n.isAdminOnly) return false;
+    if (n.actorRole === 'Administrator' && (n.tipe === 'sistem' || n.tipe === 'aktivitas')) {
+      return false;
+    }
+    return true;
+  });
 }
 
 export default function Navbar({
@@ -25,7 +43,8 @@ export default function Navbar({
   currentUser,
   onLogout,
   notifications,
-  setNotifications
+  setNotifications,
+  onSelectNotification
 }: NavbarProps) {
   const [showNotificationPopover, setShowNotificationPopover] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -107,14 +126,43 @@ export default function Navbar({
     );
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const visibleNotifications = filterNotificationsForUser(notifications, currentUser);
+  const unreadCount = visibleNotifications.filter(n => !n.read).length;
 
   const handleMarkAllRead = () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
-  const handleMarkOneRead = (id: string) => {
+  const handleMarkOneRead = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  };
+
+  const handleNotificationClick = (item: SystemNotification) => {
+    setShowNotificationPopover(false);
+    if (!item.read) {
+      setNotifications(prev => prev.map(n => n.id === item.id ? { ...n, read: true } : n));
+    }
+    if (onSelectNotification) {
+      onSelectNotification(item);
+    }
+  };
+
+  const getNotificationIcon = (tipe: string) => {
+    switch (tipe) {
+      case 'barang_masuk':
+        return <ArrowDownLeft className="w-3.5 h-3.5 text-emerald-600" />;
+      case 'barang_keluar':
+        return <ArrowUpRight className="w-3.5 h-3.5 text-blue-600" />;
+      case 'stok_habis':
+        return <ShieldAlert className="w-3.5 h-3.5 text-red-600" />;
+      case 'stok_rendah':
+        return <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />;
+      case 'registrasi_user':
+        return <UserPlus className="w-3.5 h-3.5 text-purple-600" />;
+      default:
+        return <Info className="w-3.5 h-3.5 text-slate-600" />;
+    }
   };
 
   return (
@@ -179,38 +227,40 @@ export default function Navbar({
                   </button>
                 )}
               </div>
-              <div className="max-h-64 overflow-y-auto divide-y divide-gray-100">
-                {notifications.length === 0 ? (
+              <div className="max-h-72 overflow-y-auto divide-y divide-gray-100">
+                {visibleNotifications.length === 0 ? (
                   <div className="p-6 text-center text-xs text-gray-400">
                     Tidak ada pemberitahuan baru
                   </div>
                 ) : (
-                  notifications.map(n => (
+                  visibleNotifications.map(n => (
                     <div
                       key={n.id}
-                      className={`p-3 text-xs flex gap-2 items-start transition-colors ${n.read ? 'bg-white' : 'bg-blue-50/40'}`}
+                      onClick={() => handleNotificationClick(n)}
+                      className={`p-3 text-xs flex gap-2.5 items-start transition-all cursor-pointer hover:bg-slate-50 group relative ${n.read ? 'bg-white' : 'bg-blue-50/50'}`}
                     >
-                      <div className="mt-0.5">
-                        {n.tipe === 'stok_habis' && (
-                          <span className="w-2 h-2 rounded-full bg-red-500 block" />
-                        )}
-                        {n.tipe === 'stok_rendah' && (
-                          <span className="w-2 h-2 rounded-full bg-amber-500 block" />
-                        )}
-                        {n.tipe === 'sistem' && (
-                          <span className="w-2 h-2 rounded-full bg-blue-500 block" />
-                        )}
+                      <div className="mt-0.5 w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
+                        {getNotificationIcon(n.tipe)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-gray-700 font-medium ${!n.read && 'font-semibold'}`}>{n.pesan}</p>
-                        <p className="text-[10px] text-gray-400 mt-1">
-                          {new Date(n.tanggal).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} - {new Date(n.tanggal).toLocaleDateString('id-ID')}
+                        <p className={`text-slate-800 leading-snug ${!n.read ? 'font-bold' : 'font-medium'}`}>
+                          {n.pesan}
                         </p>
+                        <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-1">
+                          <span>
+                            {new Date(n.tanggal).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} • {new Date(n.tanggal).toLocaleDateString('id-ID')}
+                          </span>
+                          {n.actorName && (
+                            <span className="font-semibold text-slate-600 truncate">
+                              • {n.actorName}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       {!n.read && (
                         <button
-                          onClick={() => handleMarkOneRead(n.id)}
-                          className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600 cursor-pointer"
+                          onClick={(e) => handleMarkOneRead(n.id, e)}
+                          className="p-1 hover:bg-blue-100 rounded text-slate-400 hover:text-blue-700 transition-colors"
                           title="Tandai terbaca"
                         >
                           <Check className="w-3.5 h-3.5" />
