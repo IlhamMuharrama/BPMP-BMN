@@ -20,13 +20,14 @@ import {
   AlertCircle,
   QrCode
 } from 'lucide-react';
-import { Barang, ActiveTab, AuditLog, Unit, Pegawai, BarangKeluar } from '../types';
+import { Barang, ActiveTab, AuditLog, Unit, Pegawai, BarangKeluar, Kategori } from '../types';
 import QRScannerModal from './QRScannerModal';
 import { useState, useEffect } from 'react';
 import { Check, X, ShieldAlert, Clock } from 'lucide-react';
 
 interface DashboardViewProps {
   barang: Barang[];
+  kategoriList?: Kategori[];
   categoriesCount: number;
   suppliersCount: number;
   barangMasukCountToday: number;
@@ -42,6 +43,7 @@ interface DashboardViewProps {
 
 export default function DashboardView({
   barang,
+  kategoriList = [],
   categoriesCount,
   suppliersCount,
   barangMasukCountToday,
@@ -80,9 +82,21 @@ export default function DashboardView({
 
   const maxCatValue = Math.max(...chartCategories.map(c => c.value), 1) || 1;
 
-  // Dashboard QR scan states
+  // Dashboard QR scan states (Scanning Category QR)
   const [isScannerOpen, setIsScannerOpen] = useState(false);
-  const [scannedItem, setScannedItem] = useState<Barang | null>(null);
+  const [scannedKategori, setScannedKategori] = useState<Kategori | null>(null);
+  const [selectedBarangId, setSelectedBarangId] = useState<string>('');
+
+  // Items in scanned category
+  const categoryItems = scannedKategori
+    ? barang.filter(b =>
+        b.kategoriId === scannedKategori.id ||
+        b.kategori === scannedKategori.nama ||
+        (b.kategori && scannedKategori.nama && b.kategori.toLowerCase().includes(scannedKategori.nama.toLowerCase()))
+      )
+    : [];
+
+  const selectedItem = categoryItems.find(b => b.id === selectedBarangId) || categoryItems[0] || null;
 
   // Form states inside locked modal
   const [jumlah, setJumlah] = useState<number>(1);
@@ -93,13 +107,23 @@ export default function DashboardView({
   const [validationError, setValidationError] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-  // Sync default options when scannedItem or lists change
+  // Sync default options when scannedKategori or lists change
   useEffect(() => {
-    if (scannedItem) {
+    if (scannedKategori) {
       setJumlah(1);
       setKeperluan('');
       setCatatan('');
       setValidationError('');
+      const items = barang.filter(b =>
+        b.kategoriId === scannedKategori.id ||
+        b.kategori === scannedKategori.nama ||
+        (b.kategori && scannedKategori.nama && b.kategori.toLowerCase().includes(scannedKategori.nama.toLowerCase()))
+      );
+      if (items.length > 0) {
+        setSelectedBarangId(items[0].id);
+      } else {
+        setSelectedBarangId('');
+      }
       if (unitList && unitList.length > 0) {
         setSelectedUnitId(unitList[0].nama);
       }
@@ -109,22 +133,31 @@ export default function DashboardView({
         setPetugas('Roni Setiawan');
       }
     }
-  }, [scannedItem, unitList, pegawaiList]);
+  }, [scannedKategori, barang, unitList, pegawaiList]);
+
+  const handleBarangSelectionChange = (bId: string) => {
+    setSelectedBarangId(bId);
+    setValidationError('');
+    const target = categoryItems.find(x => x.id === bId);
+    if (target && jumlah > target.stokSekarang) {
+      setValidationError(`Stok tidak mencukupi! Tersedia hanya ${target.stokSekarang} ${target.satuan}.`);
+    }
+  };
 
   const handleLockedJumlahChange = (val: number) => {
     setJumlah(val);
     setValidationError('');
-    if (scannedItem && val > scannedItem.stokSekarang) {
-      setValidationError(`Stok tidak mencukupi! Tersedia hanya ${scannedItem.stokSekarang} ${scannedItem.satuan}.`);
+    if (selectedItem && val > selectedItem.stokSekarang) {
+      setValidationError(`Stok tidak mencukupi! Tersedia hanya ${selectedItem.stokSekarang} ${selectedItem.satuan}.`);
     }
   };
 
   const handleLockedFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!scannedItem || jumlah <= 0) return;
+    if (!scannedKategori || !selectedItem || jumlah <= 0) return;
 
-    if (jumlah > scannedItem.stokSekarang) {
-      setValidationError(`Stok tidak mencukupi! Tersedia hanya ${scannedItem.stokSekarang} ${scannedItem.satuan}.`);
+    if (jumlah > selectedItem.stokSekarang) {
+      setValidationError(`Stok tidak mencukupi! Tersedia hanya ${selectedItem.stokSekarang} ${selectedItem.satuan}.`);
       return;
     }
 
@@ -132,10 +165,10 @@ export default function DashboardView({
   };
 
   const handleLockedFormConfirm = () => {
-    if (!scannedItem) return;
+    if (!selectedItem) return;
     onProcessTransaksi({
-      barangId: scannedItem.id,
-      namaBarang: scannedItem.nama,
+      barangId: selectedItem.id,
+      namaBarang: selectedItem.nama,
       jumlah,
       unitId: selectedUnitId,
       petugas,
@@ -144,7 +177,8 @@ export default function DashboardView({
     });
     
     // Reset
-    setScannedItem(null);
+    setScannedKategori(null);
+    setSelectedBarangId('');
     setShowConfirmModal(false);
   };
 
@@ -184,7 +218,7 @@ export default function DashboardView({
             className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-blue-600 text-white hover:opacity-95 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-md"
           >
             <QrCode className="w-4 h-4 text-blue-200" />
-            Pindai QR Barang Keluar
+            Pindai QR Kategori
           </button>
         </div>
       </div>
@@ -193,28 +227,38 @@ export default function DashboardView({
       <QRScannerModal
         isOpen={isScannerOpen}
         onClose={() => setIsScannerOpen(false)}
-        onScanSuccess={(bId) => {
-          const item = barang.find(x => x.id === bId);
-          if (item) {
-            setScannedItem(item);
+        onScanSuccess={(code, matchedItem, matchedKategori) => {
+          let kat: Kategori | null = matchedKategori || null;
+          if (!kat && matchedItem) {
+            kat = kategoriList.find(k => k.id === matchedItem.kategoriId || k.nama === matchedItem.kategori) || null;
+          }
+          if (!kat && code) {
+            const text = code.trim().toLowerCase();
+            kat = kategoriList.find(k => k.id.toLowerCase() === text || k.nama.toLowerCase() === text) || null;
+          }
+          if (kat) {
+            setScannedKategori(kat);
+          } else if (kategoriList.length > 0) {
+            setScannedKategori(kategoriList[0]);
           }
         }}
         barangList={barang}
+        kategoriList={kategoriList}
       />
 
-      {/* Scanned Locked Checkout Form Modal */}
-      {scannedItem && !showConfirmModal && (
+      {/* Scanned Locked Checkout Form Modal for Category */}
+      {scannedKategori && !showConfirmModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-50">
           <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-gray-100 overflow-hidden text-xs max-h-[92vh] sm:max-h-[85vh] flex flex-col">
             {/* Header */}
             <div className="p-3.5 sm:p-4 bg-slate-50 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
               <span className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
                 <QrCode className="w-4.5 h-4.5 text-blue-600 animate-bounce" />
-                DISTRIBUSI SCAN QR BARANG KELUAR
+                DISTRIBUSI SCAN QR KATEGORI (BARANG KELUAR)
               </span>
               <button
                 type="button"
-                onClick={() => setScannedItem(null)}
+                onClick={() => setScannedKategori(null)}
                 className="p-1 hover:bg-gray-100 rounded-lg text-gray-400 cursor-pointer transition-colors"
               >
                 <X className="w-4 h-4" />
@@ -224,29 +268,53 @@ export default function DashboardView({
             {/* Form */}
             <form onSubmit={handleLockedFormSubmit} className="p-4 sm:p-5 space-y-3.5 font-medium text-slate-700 overflow-y-auto flex-1">
               <div className="p-2.5 bg-blue-50 text-blue-900 rounded-xl leading-relaxed text-[10.5px] border border-blue-100">
-                Item barang berhasil dipindai via QR. Pilihan barang dikunci ke: <strong className="text-blue-800">"{scannedItem.nama}"</strong>.
+                Kategori barang berhasil dipindai via QR. Kategori dikunci ke: <strong className="text-blue-800">"{scannedKategori.nama}"</strong>.
               </div>
 
-              {/* Locked Item Display */}
+              {/* Locked Kategori Display */}
               <div className="space-y-1">
-                <label className="block text-gray-500 font-semibold text-[10px] uppercase tracking-wider">Item Terpilih (KUNCI QR)</label>
+                <label className="block text-gray-500 font-semibold text-[10px] uppercase tracking-wider">Kategori Terpilih (KUNCI QR)</label>
                 <div className="p-2.5 sm:p-3 bg-slate-50 border border-gray-200 rounded-xl font-bold text-slate-800 flex justify-between items-center gap-2">
-                  <span className="truncate">{scannedItem.nama} ({scannedItem.id})</span>
-                  <span className="flex-shrink-0 font-mono bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider">Terkunci Scan</span>
+                  <span className="truncate">{scannedKategori.id} - {scannedKategori.nama}</span>
+                  <span className="flex-shrink-0 font-mono bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider">Terkunci QR Kategori</span>
                 </div>
               </div>
 
-              {/* Stock display */}
-              <div className="grid grid-cols-2 gap-3 p-2.5 bg-slate-50 border border-gray-100 rounded-xl text-[10.5px] text-gray-600">
-                <div>
-                  <span>Stok Tersedia: </span>
-                  <span className="font-bold text-gray-900">{scannedItem.stokSekarang} {scannedItem.satuan}</span>
-                </div>
-                <div>
-                  <span>Lokasi Rak: </span>
-                  <span className="font-bold text-gray-900">{scannedItem.lokasiRak}</span>
-                </div>
+              {/* Item Selection inside Scanned Kategori */}
+              <div className="space-y-1">
+                <label className="block text-gray-500 font-semibold text-[10px] uppercase tracking-wider">Pilih Item Barang Dalam Kategori *</label>
+                {categoryItems.length === 0 ? (
+                  <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-xs font-medium">
+                    Belum ada item barang terdaftar dalam kategori ini.
+                  </div>
+                ) : (
+                  <select
+                    value={selectedItem ? selectedItem.id : ''}
+                    onChange={e => handleBarangSelectionChange(e.target.value)}
+                    className="w-full px-3 py-1.5 sm:py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white text-xs font-bold text-gray-900"
+                  >
+                    {categoryItems.map((b, idx) => (
+                      <option key={`${b.id}_${idx}`} value={b.id} disabled={b.stokSekarang === 0}>
+                        [{b.id}] {b.nama} (Stok: {b.stokSekarang} {b.satuan}) {b.stokSekarang === 0 ? '[KOSONG]' : ''}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
+
+              {/* Stock & Location Display if item exists */}
+              {selectedItem && (
+                <div className="grid grid-cols-2 gap-3 p-2.5 bg-slate-50 border border-gray-100 rounded-xl text-[10.5px] text-gray-600">
+                  <div>
+                    <span>Stok Tersedia: </span>
+                    <span className="font-bold text-gray-900">{selectedItem.stokSekarang} {selectedItem.satuan}</span>
+                  </div>
+                  <div>
+                    <span>Lokasi Rak: </span>
+                    <span className="font-bold text-gray-900">{selectedItem.lokasiRak || '-'}</span>
+                  </div>
+                </div>
+              )}
 
               {/* Volume */}
               <div className="space-y-1">
@@ -256,6 +324,7 @@ export default function DashboardView({
                     type="number"
                     min="1"
                     required
+                    disabled={!selectedItem || selectedItem.stokSekarang === 0}
                     value={jumlah}
                     onChange={e => handleLockedJumlahChange(parseInt(e.target.value) || 1)}
                     className={`w-full px-3 py-1.5 sm:py-2 border rounded-xl focus:outline-none focus:ring-2 text-xs ${
@@ -263,7 +332,7 @@ export default function DashboardView({
                     }`}
                   />
                   <span className="px-3.5 py-1.5 sm:py-2 bg-slate-100 border border-gray-200 text-gray-500 font-bold rounded-xl flex items-center justify-center text-xs">
-                    {scannedItem.satuan}
+                    {selectedItem?.satuan || 'Pcs'}
                   </span>
                 </div>
                 {validationError && (
@@ -337,14 +406,14 @@ export default function DashboardView({
               <div className="flex gap-2.5 pt-2 flex-shrink-0">
                 <button
                   type="button"
-                  onClick={() => setScannedItem(null)}
+                  onClick={() => setScannedKategori(null)}
                   className="flex-1 py-2 sm:py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-center cursor-pointer transition-colors"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  disabled={!!validationError}
+                  disabled={!selectedItem || !!validationError || selectedItem.stokSekarang === 0}
                   className="flex-1 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-center cursor-pointer disabled:opacity-50 transition-colors"
                 >
                   Keluarkan Barang
@@ -356,12 +425,12 @@ export default function DashboardView({
       )}
 
       {/* Scanned Locked Form Confirmation Dialog Overlay */}
-      {scannedItem && showConfirmModal && (
+      {scannedKategori && selectedItem && showConfirmModal && (
         <div className="fixed inset-0 bg-slate-900/45 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-gray-100 overflow-hidden text-xs text-slate-700">
             <div className="p-4 bg-slate-50 border-b border-gray-100 flex items-center gap-1.5 font-bold text-gray-900">
               <ShieldAlert className="w-4 h-4 text-amber-500 animate-pulse" />
-              KONFIRMASI BARANG KELUAR (SCAN QR)
+              KONFIRMASI BARANG KELUAR (SCAN QR KATEGORI)
             </div>
             
             <div className="p-5 space-y-4">
@@ -371,16 +440,20 @@ export default function DashboardView({
 
               <div className="space-y-2 border-y border-gray-100 py-3">
                 <div className="grid grid-cols-3">
+                  <span className="text-gray-400 font-semibold">Kategori:</span>
+                  <span className="col-span-2 font-bold text-slate-900">{scannedKategori.nama}</span>
+                </div>
+                <div className="grid grid-cols-3">
                   <span className="text-gray-400 font-semibold">Nama Barang:</span>
-                  <span className="col-span-2 font-bold text-gray-900">{scannedItem.nama}</span>
+                  <span className="col-span-2 font-bold text-gray-900">{selectedItem.nama}</span>
                 </div>
                 <div className="grid grid-cols-3">
                   <span className="text-gray-400 font-semibold">Volume Keluar:</span>
-                  <span className="col-span-2 font-bold text-red-600">-{jumlah} {scannedItem.satuan}</span>
+                  <span className="col-span-2 font-bold text-red-600">-{jumlah} {selectedItem.satuan}</span>
                 </div>
                 <div className="grid grid-cols-3">
                   <span className="text-gray-400 font-semibold">Sisa Stok Nanti:</span>
-                  <span className="col-span-2 font-bold text-slate-800">{scannedItem.stokSekarang - jumlah} {scannedItem.satuan}</span>
+                  <span className="col-span-2 font-bold text-slate-800">{selectedItem.stokSekarang - jumlah} {selectedItem.satuan}</span>
                 </div>
                 <div className="grid grid-cols-3">
                   <span className="text-gray-400 font-semibold">Unit Penerima:</span>

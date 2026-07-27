@@ -83,8 +83,8 @@ export default function AuditLogView({ logs, onClearLogs, currentUser }: AuditLo
                   </td>
                 </tr>
               ) : (
-                filteredLogs.map(log => (
-                  <tr key={log.id} className="hover:bg-slate-50/30 transition-colors">
+                filteredLogs.map((log, idx) => (
+                  <tr key={`${log.id}_${idx}`} className="hover:bg-slate-50/30 transition-colors">
                     <td className="p-4 font-mono text-[11px] text-gray-500">
                       {new Date(log.tanggal).toLocaleDateString('id-ID')} {new Date(log.tanggal).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                     </td>

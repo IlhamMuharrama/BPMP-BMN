@@ -320,8 +320,8 @@ export default function TransaksiKeluarView({
                     onChange={e => handleBarangChange(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-600 focus:outline-none font-medium text-gray-900"
                   >
-                    {filteredBarangList.map(b => (
-                      <option key={b.id} value={b.id} disabled={b.stokSekarang === 0}>
+                    {filteredBarangList.map((b, idx) => (
+                      <option key={`${b.id}-${b.kategoriId}-${idx}`} value={b.id} disabled={b.stokSekarang === 0}>
                         [{b.id}] {b.nama} (Stok: {b.stokSekarang} {b.satuan}) {b.stokSekarang === 0 ? '[KOSONG]' : ''}
                       </option>
                     ))}
@@ -459,8 +459,8 @@ export default function TransaksiKeluarView({
                 Permohonan Pengeluaran Anda Menunggu Persetujuan ({pendingRequests.length})
               </h4>
               <div className="divide-y divide-amber-100 text-[11px]">
-                {pendingRequests.map(p => (
-                  <div key={p.id} className="py-2.5 flex items-center justify-between text-slate-700">
+                {pendingRequests.map((p, idx) => (
+                  <div key={`${p.id}_${idx}`} className="py-2.5 flex items-center justify-between text-slate-700">
                     <div>
                       <span className="font-bold text-gray-900">{p.namaBarang}</span>
                       <span className="text-[10px] text-gray-400 block">Unit: {p.unitId} • Keperluan: {p.keperluan}</span>
@@ -498,8 +498,8 @@ export default function TransaksiKeluarView({
                       </td>
                     </tr>
                   ) : (
-                    finalizedRequests.map(t => (
-                      <tr key={t.id} className="hover:bg-slate-50/40 transition-colors">
+                    finalizedRequests.map((t, idx) => (
+                      <tr key={`${t.id}_${idx}`} className="hover:bg-slate-50/40 transition-colors">
                         <td className="p-3">
                           <span className="font-mono font-bold text-gray-900 block">{t.id}</span>
                           <span className="text-[10px] text-gray-400 block mt-0.5">

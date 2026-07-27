@@ -175,27 +175,11 @@ function seedInitialData(name, sheet, driveSettings) {
     sheet.appendRow(["FOLDER_DOKUMEN_ID", driveSettings.DokumenTransaksi, "Folder ID Dokumen (Faktur/PDF)"]);
   }
   else if (name === "Barang") {
-    sheet.appendRow([
-      "BRG-001",
-      "Kertas HVS A4 80gr Sinar Dunia",
-      "Alat Tulis Kantor (ATK)",
-      "CV Sriwijaya Abadi Jaya",
-      "Rim",
-      "Rak ATK - A1",
-      "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=BRG-001",
-      45,
-      15,
-      100,
-      "Kertas HVS putih A4 80gr",
-      "",
-      now,
-      now
-    ]);
+    // Empty initial barang for production
   }
   else if (name === "Accounts") {
     sheet.appendRow(["admin", "Ilham Muharrama", "-", "Magang/KP", "08981741680", "admin", "Administrator", "Disetujui", now]);
     sheet.appendRow(["petugas", "Roni Setiawan", "198804152014021003", "Petugas BMN", "081271234567", "bmn", "Petugas BMN", "Disetujui", now]);
-    sheet.appendRow(["budi_baru", "Budi Budiman", "199112022019031005", "Petugas BMN Baru", "08981741680", "budi", "Petugas BMN", "Pending", now]);
   }
 }
 

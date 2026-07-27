@@ -513,20 +513,13 @@ export const INDEX_HTML_CONTENT = `<!DOCTYPE html>
 
     // --- MOCK DATABASE (Used when run outside Apps Script context) ---
     const MOCK_DATA = {
-      barang: [
-        { kodeBarang: "BRG-001", namaBarang: "Kertas HVS A4 80gr Sinar Dunia", kategori: "Alat Tulis Kantor (ATK)", supplier: "CV Sriwijaya Abadi Jaya", satuan: "Rim", lokasiRak: "Rak ATK - A1", stokSekarang: 45, stokMin: 15, stokMaks: 100, deskripsi: "Kertas HVS putih A4" }
-      ],
-      kategori: [
-        { idKategori: "KAT-001", namaKategori: "Alat Tulis Kantor (ATK)", deskripsi: "Kebutuhan alat tulis sehari-hari" }
-      ],
-      barangMasuk: [
-        { idTransaksi: "TRM-260720-01", tanggal: new Date().toISOString(), kodeBarang: "BRG-001", namaBarang: "Kertas HVS A4 80gr Sinar Dunia", jumlah: 45, supplier: "CV Sriwijaya Abadi Jaya", petugas: "Roni Setiawan" }
-      ],
+      barang: [],
+      kategori: [],
+      barangMasuk: [],
       barangKeluar: [],
       accounts: [
-        { username: "admin", nama: "Wahyudi, S.Si", nip: "197509121999031002", jabatan: "Kepala Subbagian Umum / Administrator", telepon: "081178901234", password: "admin", role: "Administrator", status: "Disetujui" },
-        { username: "petugas", nama: "Roni Setiawan", nip: "198804152014021003", jabatan: "Petugas BMN", telepon: "081271234567", password: "bmn", role: "Petugas BMN", status: "Disetujui" },
-        { username: "budi_baru", nama: "Budi Budiman", nip: "199112022019031005", jabatan: "Petugas BMN Baru", telepon: "08981741680", password: "budi", role: "Petugas BMN", status: "Pending" }
+        { username: "admin", nama: "Ilham Muharrama", nip: "-", jabatan: "Magang/KP / Administrator", telepon: "08981741680", password: "admin", role: "Administrator", status: "Disetujui" },
+        { username: "petugas", nama: "Roni Setiawan", nip: "198804152014021003", jabatan: "Petugas BMN", telepon: "081271234567", password: "bmn", role: "Petugas BMN", status: "Disetujui" }
       ]
     };
 

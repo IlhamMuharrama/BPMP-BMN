@@ -100,8 +100,8 @@ export default function RiwayatView({ riwayat }: RiwayatViewProps) {
               Tidak ada catatan riwayat mutasi ditemukan.
             </div>
           ) : (
-            filteredRiwayat.map(r => (
-              <div key={r.id} className="relative">
+            filteredRiwayat.map((r, idx) => (
+              <div key={`${r.id}_${idx}`} className="relative">
                 {/* Dot marker */}
                 <span className={`absolute -left-[25px] top-1 w-4 h-4 rounded-full border-2 border-white flex items-center justify-center ${
                   r.tipe === 'Masuk' ? 'bg-green-500' : 'bg-red-500'

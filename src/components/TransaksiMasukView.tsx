@@ -272,8 +272,8 @@ export default function TransaksiMasukView({
                   onChange={e => handleBarangChange(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-600 focus:outline-none font-medium text-gray-900"
                 >
-                  {filteredBarangList.map(b => (
-                    <option key={b.id} value={b.id}>
+                  {filteredBarangList.map((b, idx) => (
+                    <option key={`${b.id}-${b.kategoriId}-${idx}`} value={b.id}>
                       [{b.id}] {b.nama} (Stok: {b.stokSekarang} {b.satuan})
                     </option>
                   ))}
@@ -431,8 +431,8 @@ export default function TransaksiMasukView({
                   </td>
                 </tr>
               ) : (
-                transaksiList.map(t => (
-                  <tr key={t.id} className="hover:bg-slate-50/40 transition-colors">
+                transaksiList.map((t, idx) => (
+                  <tr key={`${t.id}_${idx}`} className="hover:bg-slate-50/40 transition-colors">
                     <td className="p-3">
                       <span className="font-mono font-bold text-gray-900 block">{t.id}</span>
                       <span className="text-[10px] text-gray-400 block mt-0.5">

@@ -139,21 +139,28 @@ export default function App() {
   const getCachedData = (key: string, fallback: any) => {
     if (typeof window === 'undefined') return fallback;
     try {
-      const cached = localStorage.getItem('bpmp_bmn_prod_clean_v3_cache_' + key);
+      const cached = localStorage.getItem('bpmp_bmn_prod_clean_v5_cache_' + key);
       if (cached) return JSON.parse(cached);
     } catch(e) {}
     return fallback;
   };
 
-  const [accounts, setAccounts] = useState<UserAccount[]>(() => getCachedData('accounts', INITIAL_ACCOUNTS));
+  const mergeWithInitial = <T,>(incoming: any[], initial: T[], keyProp: keyof T = 'id' as keyof T): T[] => {
+    if (!Array.isArray(incoming) || incoming.length === 0) return initial;
+    const existingIds = new Set(incoming.map((item: any) => item[keyProp]));
+    const missingInitial = initial.filter((item: T) => !existingIds.has(item[keyProp]));
+    return [...incoming, ...missingInitial];
+  };
+
+  const [accounts, setAccounts] = useState<UserAccount[]>(() => mergeWithInitial(getCachedData('accounts', []), INITIAL_ACCOUNTS, 'username'));
 
   // Core database states
-  const [barangList, setBarangList] = useState<Barang[]>(() => getCachedData('barangList', INITIAL_BARANG));
-  const [kategoriList, setKategoriList] = useState<Kategori[]>(() => getCachedData('kategoriList', INITIAL_KATEGORI));
-  const [supplierList, setSupplierList] = useState<Supplier[]>(() => getCachedData('supplierList', INITIAL_SUPPLIER));
-  const [unitList, setUnitList] = useState<Unit[]>(() => getCachedData('unitList', INITIAL_UNIT));
-  const [satuanList, setSatuanList] = useState<Satuan[]>(() => getCachedData('satuanList', INITIAL_SATUAN));
-  const [pegawaiList, setPegawaiList] = useState<Pegawai[]>(() => getCachedData('pegawaiList', INITIAL_PEGAWAI));
+  const [barangList, setBarangList] = useState<Barang[]>(() => mergeWithInitial(getCachedData('barangList', []), INITIAL_BARANG));
+  const [kategoriList, setKategoriList] = useState<Kategori[]>(() => mergeWithInitial(getCachedData('kategoriList', []), INITIAL_KATEGORI));
+  const [supplierList, setSupplierList] = useState<Supplier[]>(() => mergeWithInitial(getCachedData('supplierList', []), INITIAL_SUPPLIER));
+  const [unitList, setUnitList] = useState<Unit[]>(() => mergeWithInitial(getCachedData('unitList', []), INITIAL_UNIT));
+  const [satuanList, setSatuanList] = useState<Satuan[]>(() => mergeWithInitial(getCachedData('satuanList', []), INITIAL_SATUAN));
+  const [pegawaiList, setPegawaiList] = useState<Pegawai[]>(() => mergeWithInitial(getCachedData('pegawaiList', []), INITIAL_PEGAWAI));
   const [barangMasukList, setBarangMasukList] = useState<BarangMasuk[]>(() => getCachedData('barangMasukList', INITIAL_BARANG_MASUK));
   const [barangKeluarList, setBarangKeluarList] = useState<BarangKeluar[]>(() => getCachedData('barangKeluarList', INITIAL_BARANG_KELUAR));
   const [riwayatList, setRiwayatList] = useState<Riwayat[]>(() => getCachedData('riwayatList', INITIAL_RIWAYAT));
@@ -181,7 +188,7 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [activeToast]);
 
-  const hasCache = typeof window !== 'undefined' && !!localStorage.getItem('bpmp_bmn_prod_clean_v3_cache_barangList');
+  const hasCache = typeof window !== 'undefined' && !!localStorage.getItem('bpmp_bmn_prod_clean_v5_cache_barangList');
   const [isLoading, setIsLoading] = useState(!hasCache);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -202,17 +209,17 @@ export default function App() {
         if (res.ok) {
           const data = await res.json();
           skipNextSaveRef.current = true;
-          if (data.Barang && data.Barang.length > 0) setBarangList(data.Barang);
-          if (data.Kategori && data.Kategori.length > 0) setKategoriList(data.Kategori);
-          if (data.Supplier && data.Supplier.length > 0) setSupplierList(data.Supplier);
-          if (data.Unit && data.Unit.length > 0) setUnitList(data.Unit);
-          if (data.Satuan && data.Satuan.length > 0) setSatuanList(data.Satuan);
-          if (data.Pegawai && data.Pegawai.length > 0) setPegawaiList(data.Pegawai);
-          if (data.BarangMasuk && data.BarangMasuk.length > 0) setBarangMasukList(data.BarangMasuk);
-          if (data.BarangKeluar && data.BarangKeluar.length > 0) setBarangKeluarList(data.BarangKeluar);
-          if (data.Riwayat && data.Riwayat.length > 0) setRiwayatList(data.Riwayat);
-          if (data.AuditLog && data.AuditLog.length > 0) setAuditLogsList(data.AuditLog);
-          if (data.Accounts && data.Accounts.length > 0) {
+          setBarangList(mergeWithInitial(Array.isArray(data.Barang) ? data.Barang : [], INITIAL_BARANG));
+          setKategoriList(mergeWithInitial(Array.isArray(data.Kategori) ? data.Kategori : [], INITIAL_KATEGORI));
+          setSupplierList(mergeWithInitial(Array.isArray(data.Supplier) ? data.Supplier : [], INITIAL_SUPPLIER));
+          setUnitList(mergeWithInitial(Array.isArray(data.Unit) ? data.Unit : [], INITIAL_UNIT));
+          setSatuanList(mergeWithInitial(Array.isArray(data.Satuan) ? data.Satuan : [], INITIAL_SATUAN));
+          setPegawaiList(mergeWithInitial(Array.isArray(data.Pegawai) ? data.Pegawai : [], INITIAL_PEGAWAI));
+          if (Array.isArray(data.BarangMasuk)) setBarangMasukList(data.BarangMasuk);
+          if (Array.isArray(data.BarangKeluar)) setBarangKeluarList(data.BarangKeluar);
+          if (Array.isArray(data.Riwayat)) setRiwayatList(data.Riwayat);
+          if (Array.isArray(data.AuditLog)) setAuditLogsList(data.AuditLog);
+          if (Array.isArray(data.Accounts) && data.Accounts.length > 0) {
             const updatedAccs = data.Accounts.map((a: UserAccount) =>
               a.username === 'admin'
                 ? { ...a, nama: 'Ilham Muharrama', nip: '-', jabatan: 'Magang/KP', telepon: '08981741680' }
@@ -220,8 +227,8 @@ export default function App() {
             );
             setAccounts(updatedAccs);
           }
-          if (data.Settings && data.Settings.length > 0) setSettings(data.Settings[0]);
-          if (data.Notifications && data.Notifications.length > 0) {
+          if (Array.isArray(data.Settings) && data.Settings.length > 0) setSettings(data.Settings[0]);
+          if (Array.isArray(data.Notifications)) {
             const remoteNotifs = data.Notifications as SystemNotification[];
             setNotificationsList(prevNotifs => {
               const existingSet = knownNotifIdsRef.current;
@@ -327,19 +334,19 @@ export default function App() {
     
     // Save to local cache first for fast load on next refresh
     try {
-      localStorage.setItem('bpmp_bmn_prod_clean_v3_cache_accounts', JSON.stringify(accounts));
-      localStorage.setItem('bpmp_bmn_prod_clean_v3_cache_barangList', JSON.stringify(barangList));
-      localStorage.setItem('bpmp_bmn_prod_clean_v3_cache_kategoriList', JSON.stringify(kategoriList));
-      localStorage.setItem('bpmp_bmn_prod_clean_v3_cache_supplierList', JSON.stringify(supplierList));
-      localStorage.setItem('bpmp_bmn_prod_clean_v3_cache_unitList', JSON.stringify(unitList));
-      localStorage.setItem('bpmp_bmn_prod_clean_v3_cache_satuanList', JSON.stringify(satuanList));
-      localStorage.setItem('bpmp_bmn_prod_clean_v3_cache_pegawaiList', JSON.stringify(pegawaiList));
-      localStorage.setItem('bpmp_bmn_prod_clean_v3_cache_barangMasukList', JSON.stringify(barangMasukList));
-      localStorage.setItem('bpmp_bmn_prod_clean_v3_cache_barangKeluarList', JSON.stringify(barangKeluarList));
-      localStorage.setItem('bpmp_bmn_prod_clean_v3_cache_riwayatList', JSON.stringify(riwayatList));
-      localStorage.setItem('bpmp_bmn_prod_clean_v3_cache_auditLogsList', JSON.stringify(auditLogsList));
-      localStorage.setItem('bpmp_bmn_prod_clean_v3_cache_notificationsList', JSON.stringify(notificationsList));
-      localStorage.setItem('bpmp_bmn_prod_clean_v3_cache_settings', JSON.stringify(settings));
+      localStorage.setItem('bpmp_bmn_prod_clean_v5_cache_accounts', JSON.stringify(accounts));
+      localStorage.setItem('bpmp_bmn_prod_clean_v5_cache_barangList', JSON.stringify(barangList));
+      localStorage.setItem('bpmp_bmn_prod_clean_v5_cache_kategoriList', JSON.stringify(kategoriList));
+      localStorage.setItem('bpmp_bmn_prod_clean_v5_cache_supplierList', JSON.stringify(supplierList));
+      localStorage.setItem('bpmp_bmn_prod_clean_v5_cache_unitList', JSON.stringify(unitList));
+      localStorage.setItem('bpmp_bmn_prod_clean_v5_cache_satuanList', JSON.stringify(satuanList));
+      localStorage.setItem('bpmp_bmn_prod_clean_v5_cache_pegawaiList', JSON.stringify(pegawaiList));
+      localStorage.setItem('bpmp_bmn_prod_clean_v5_cache_barangMasukList', JSON.stringify(barangMasukList));
+      localStorage.setItem('bpmp_bmn_prod_clean_v5_cache_barangKeluarList', JSON.stringify(barangKeluarList));
+      localStorage.setItem('bpmp_bmn_prod_clean_v5_cache_riwayatList', JSON.stringify(riwayatList));
+      localStorage.setItem('bpmp_bmn_prod_clean_v5_cache_auditLogsList', JSON.stringify(auditLogsList));
+      localStorage.setItem('bpmp_bmn_prod_clean_v5_cache_notificationsList', JSON.stringify(notificationsList));
+      localStorage.setItem('bpmp_bmn_prod_clean_v5_cache_settings', JSON.stringify(settings));
     } catch(e) { console.error('Failed to cache data', e); }
 
 const handler = setTimeout(async () => {
@@ -1099,6 +1106,7 @@ const handler = setTimeout(async () => {
               {activeTab === 'dashboard' && (
                 <DashboardView
                   barang={barangList}
+                  kategoriList={kategoriList}
                   categoriesCount={kategoriList.length}
                   suppliersCount={supplierList.length}
                   barangMasukCountToday={barangMasukToday}

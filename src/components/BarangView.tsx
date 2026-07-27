@@ -287,8 +287,8 @@ export default function BarangView({
                   </td>
                 </tr>
               ) : (
-                paginatedBarang.map(item => (
-                  <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
+                paginatedBarang.map((item, idx) => (
+                  <tr key={`${item.id}_${item.kategoriId || ''}_${idx}`} className="hover:bg-slate-50/50 transition-colors">
                     <td className="p-4">
                       <img
                         src={item.imageUrl}
