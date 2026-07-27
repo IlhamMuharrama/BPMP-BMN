@@ -6,7 +6,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import jsQR from 'jsqr';
-import { Camera, X, AlertCircle, Check, RefreshCw, Search, PackageCheck, Image as ImageIcon, SwitchCamera, Sparkles, ScanLine } from 'lucide-react';
+import { Camera, X, AlertCircle, Check, RefreshCw, Image as ImageIcon, SwitchCamera, Sparkles, ScanLine } from 'lucide-react';
 import { Barang } from '../types';
 
 interface QRScannerModalProps {
@@ -31,14 +31,48 @@ export default function QRScannerModal({
   const [errorMessage, setErrorMessage] = useState('');
   const [scannedItem, setScannedItem] = useState<Barang | null>(null);
   const [scannerInstance, setScannerInstance] = useState<Html5Qrcode | null>(null);
-  const [manualSearch, setManualSearch] = useState('');
   const [availableCameras, setAvailableCameras] = useState<CameraDevice[]>([]);
   const [selectedCameraId, setSelectedCameraId] = useState<string>('');
   const [isProcessingFile, setIsProcessingFile] = useState(false);
 
+  const isHandlingScanRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const captureInputRef = useRef<HTMLInputElement>(null);
   const qrId = "qr-reader-element-static";
+
+  // Fast pre-indexed lookup map for instant O(1) QR matching
+  const barangFastMap = React.useMemo(() => {
+    const map = new Map<string, Barang>();
+    barangList.forEach(b => {
+      if (!b) return;
+      if (b.id) {
+        const rawId = String(b.id).trim();
+        map.set(rawId, b);
+        map.set(rawId.toLowerCase(), b);
+        map.set(rawId.toUpperCase(), b);
+        
+        // Clean alphanumeric version (e.g. BRG-001 -> brg001)
+        const cleanId = rawId.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (cleanId) map.set(cleanId, b);
+
+        // Digits-only version (e.g. BRG-001 -> 001)
+        const digits = rawId.match(/\d+/);
+        if (digits) {
+          map.set(digits[0], b);
+          map.set(String(parseInt(digits[0], 10)), b);
+        }
+      }
+      if (b.qrCodeUrl) {
+        const url = String(b.qrCodeUrl).trim();
+        map.set(url, b);
+        map.set(url.toLowerCase(), b);
+      }
+      if (b.nama) {
+        map.set(String(b.nama).trim().toLowerCase(), b);
+      }
+    });
+    return map;
+  }, [barangList]);
 
   // Audio tone feedback on successful QR match
   const playSuccessSound = () => {
@@ -59,7 +93,7 @@ export default function QRScannerModal({
   };
 
   /**
-   * Comprehensive Multi-Format Parsing Engine
+   * Ultra-Fast Multi-Format Parsing Engine
    * Accepts any decoded string format from 1D/2D QR/Barcodes
    */
   const parseScannedText = (rawCode: string): Barang | null => {
@@ -67,11 +101,20 @@ export default function QRScannerModal({
     const text = rawCode.trim();
     if (!text) return null;
 
-    // 1. Direct match with b.qrCodeUrl
+    // 1. O(1) Instant Fast Map Check (Exact match, Case-insensitive, Clean Alphanum, or Digits)
+    const instantMatch = barangFastMap.get(text) || barangFastMap.get(text.toLowerCase()) || barangFastMap.get(text.toUpperCase());
+    if (instantMatch) return instantMatch;
+
+    const cleanRaw = text.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (cleanRaw) {
+      const cleanMatch = barangFastMap.get(cleanRaw);
+      if (cleanMatch) return cleanMatch;
+    }
+
+    // 2. Direct match with b.qrCodeUrl or b.id in array fallback
     let matched = barangList.find(b => b.qrCodeUrl && b.qrCodeUrl.trim() === text);
     if (matched) return matched;
 
-    // 2. Direct ID match (case insensitive)
     matched = barangList.find(b => String(b.id || '').trim().toLowerCase() === text.toLowerCase());
     if (matched) return matched;
 
@@ -115,34 +158,9 @@ export default function QRScannerModal({
       const formattedId = `BRG-${numPart.padStart(3, '0')}`;
       matched = barangList.find(b => String(b.id || '').toUpperCase() === formattedId.toUpperCase());
       if (matched) return matched;
-
-      // Normalized ID match
-      const cleanTarget = text.toLowerCase().replace(/[-_\s]/g, '');
-      matched = barangList.find(b => String(b.id || '').toLowerCase().replace(/[-_\s]/g, '') === cleanTarget);
-      if (matched) return matched;
     }
 
-    // 6. Number-only match (e.g. "001" or "1" -> BRG-001)
-    if (/^\d+$/.test(text)) {
-      const numVal = parseInt(text, 10);
-      matched = barangList.find(b => {
-        const digits = String(b.id || '').match(/\d+/);
-        return digits && parseInt(digits[0], 10) === numVal;
-      });
-      if (matched) return matched;
-    }
-
-    // 7. Normalized alphanumeric match (ignore dashes, spaces, slashes)
-    const cleanRaw = text.toLowerCase().replace(/[^a-z0-9]/g, '');
-    if (cleanRaw.length >= 2) {
-      matched = barangList.find(b => {
-        const cleanId = String(b.id || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-        return cleanId === cleanRaw;
-      });
-      if (matched) return matched;
-    }
-
-    // 8. Item Name match (exact or substring)
+    // 6. Item Name match (exact or substring)
     const lowerText = text.toLowerCase();
     matched = barangList.find(b => {
       const lowerName = String(b.nama || '').toLowerCase();
@@ -153,8 +171,11 @@ export default function QRScannerModal({
     return null;
   };
 
-  // Handle successful match
+  // Handle successful match with lock to prevent duplicate concurrent triggers
   const handleScannedCode = async (decodedText: string, activeScanner = scannerInstance) => {
+    if (isHandlingScanRef.current) return;
+    isHandlingScanRef.current = true;
+
     const matched = parseScannedText(decodedText);
 
     if (matched) {
@@ -168,11 +189,15 @@ export default function QRScannerModal({
       setTimeout(() => {
         onScanSuccess(matched.id);
         onClose();
-      }, 1000);
+        isHandlingScanRef.current = false;
+      }, 500);
     } else {
       const snippet = decodedText.length > 40 ? decodedText.substring(0, 40) + '...' : decodedText;
       setErrorMessage(`Kode "${snippet}" berhasil dibaca, namun tidak ditemukan di katalog barang BMN.`);
       setCameraState('error');
+      setTimeout(() => {
+        isHandlingScanRef.current = false;
+      }, 1200);
     }
   };
 
@@ -233,16 +258,26 @@ export default function QRScannerModal({
         const html5QrCode = new Html5Qrcode(qrId);
         setScannerInstance(html5QrCode);
 
+        // Optimized configuration for ultra-fast responsiveness & wide detection area
         const config = {
-          fps: 15,
+          fps: 25, // Increased frame rate for fast responsiveness
           qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
             const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-            const size = Math.floor(minEdge * 0.75);
-            return { width: Math.max(size, 180), height: Math.max(size, 180) };
+            const size = Math.floor(minEdge * 0.90); // 90% wide scanning zone
+            return { width: Math.max(size, 200), height: Math.max(size, 200) };
           },
+          aspectRatio: 1.0,
+          disableFlip: false,
           experimentalFeatures: {
             useBarCodeDetectorIfSupported: true
           }
+        };
+
+        const highResCameraConstraints = {
+          facingMode: "environment",
+          width: { ideal: 1280, min: 640 },
+          height: { ideal: 720, min: 480 },
+          frameRate: { ideal: 30, max: 60 }
         };
 
         if (overrideCameraId) {
@@ -255,7 +290,7 @@ export default function QRScannerModal({
         } else {
           try {
             await html5QrCode.start(
-              { facingMode: "environment" },
+              highResCameraConstraints,
               config,
               (text) => handleScannedCode(text, html5QrCode),
               () => {}
@@ -405,19 +440,6 @@ export default function QRScannerModal({
     }
   };
 
-  const handleManualSelect = (item: Barang) => {
-    setScannedItem(item);
-    setCameraState('success');
-    playSuccessSound();
-
-    stopScanner();
-
-    setTimeout(() => {
-      onScanSuccess(item.id);
-      onClose();
-    }, 600);
-  };
-
   useEffect(() => {
     if (isOpen) {
       startScanner();
@@ -428,12 +450,6 @@ export default function QRScannerModal({
   }, [isOpen]);
 
   if (!isOpen) return null;
-
-  const filteredBarangList = barangList.filter(b => 
-    String(b.nama || '').toLowerCase().includes(manualSearch.toLowerCase()) ||
-    String(b.id || '').toLowerCase().includes(manualSearch.toLowerCase()) ||
-    String(b.kategori || '').toLowerCase().includes(manualSearch.toLowerCase())
-  );
 
   return (
     <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 z-[9999] overflow-y-auto">
@@ -447,7 +463,7 @@ export default function QRScannerModal({
             </div>
             <div>
               <h3 className="text-sm font-bold text-slate-900 leading-tight">Pemindai QR & Barcode BMN</h3>
-              <p className="text-[10px] text-slate-500 font-medium">Auto-Detect: Live Stream, Foto HP, Galeri & Catalog</p>
+              <p className="text-[10px] text-slate-500 font-medium">Auto-Detect: Live Stream, Foto HP & Upload Galeri</p>
             </div>
           </div>
           <button 
@@ -464,60 +480,7 @@ export default function QRScannerModal({
         {/* Modal Body */}
         <div className="p-4 flex-1 overflow-y-auto space-y-3.5">
 
-          {/* PRIMARY OPTION: MOBILE CAMERA CAPTURE & GALLERY UPLOAD */}
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl p-3.5 shadow-md space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold flex items-center gap-1.5 uppercase tracking-wider text-blue-100">
-                <Sparkles className="w-3.5 h-3.5 text-amber-300" /> Pilihan Utama: Foto HP / Galeri
-              </span>
-              <span className="text-[9px] bg-white/20 text-white font-extrabold px-2 py-0.5 rounded-full">
-                Multi-Engine 100% Works
-              </span>
-            </div>
-
-            {/* Hidden inputs */}
-            <input
-              ref={captureInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={(e) => {
-                if (e.target.files?.[0]) processImageFile(e.target.files[0]);
-              }}
-              className="hidden"
-            />
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={(e) => {
-                if (e.target.files?.[0]) processImageFile(e.target.files[0]);
-              }}
-              className="hidden"
-            />
-
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => captureInputRef.current?.click()}
-                className="py-2.5 px-2 bg-white text-blue-700 hover:bg-blue-50 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer"
-              >
-                <Camera className="w-4 h-4 text-blue-600" /> Ambil Foto HP
-              </button>
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="py-2.5 px-2 bg-blue-800/60 hover:bg-blue-800/90 text-white border border-blue-400/40 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer"
-              >
-                <ImageIcon className="w-4 h-4 text-blue-200" /> Upload Galeri
-              </button>
-            </div>
-            <p className="text-[9.5px] text-blue-100/90 text-center leading-tight pt-0.5">
-              Klik "Ambil Foto HP" untuk langsung membuka kamera smartphone Anda tanpa batasan izin browser.
-            </p>
-          </div>
-
-          {/* LIVE CAMERA DISPLAY */}
+          {/* 1. LIVE CAMERA STREAM DISPLAY */}
           <div className="w-full aspect-square max-w-[240px] mx-auto bg-slate-950 rounded-2xl relative overflow-hidden flex flex-col items-center justify-center border-4 border-slate-200 shadow-inner">
             
             {/* The html5-qrcode element MUST always exist in DOM */}
@@ -604,44 +567,57 @@ export default function QRScannerModal({
             </div>
           )}
 
-          {/* FALLBACK MANUAL SELECTION FROM KATALOG */}
-          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 space-y-2">
-            <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block text-center">
-              Pilih Langsung dari Katalog Barang BMN
-            </span>
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
-              <input
-                type="text"
-                placeholder="Cari nama atau kode barang (misal: BRG-001)..."
-                value={manualSearch}
-                onChange={e => setManualSearch(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 focus:outline-none"
-              />
+          {/* 2. ALTERNATE OPTION (BELOW LIVE CAMERA): MOBILE CAMERA CAPTURE & GALLERY UPLOAD */}
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl p-3.5 shadow-md space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold flex items-center gap-1.5 uppercase tracking-wider text-blue-100">
+                <Sparkles className="w-3.5 h-3.5 text-amber-300" /> Pilihan Foto HP / Galeri
+              </span>
+              <span className="text-[9px] bg-white/20 text-white font-extrabold px-2 py-0.5 rounded-full">
+                Multi-Engine Fast Scan
+              </span>
             </div>
 
-            <div className="max-h-32 overflow-y-auto space-y-1 pr-1 text-xs">
-              {filteredBarangList.length > 0 ? (
-                filteredBarangList.slice(0, 5).map(item => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => handleManualSelect(item)}
-                    className="w-full text-left p-2 bg-white hover:bg-blue-50 border border-slate-200 rounded-xl transition-all flex items-center justify-between cursor-pointer group"
-                  >
-                    <div>
-                      <span className="font-bold text-slate-800 block text-xs group-hover:text-blue-600">{item.nama}</span>
-                      <span className="text-[10px] text-slate-400 font-mono">{item.id} • Rak: {item.lokasiRak}</span>
-                    </div>
-                    <PackageCheck className="w-4 h-4 text-slate-400 group-hover:text-blue-600 flex-shrink-0" />
-                  </button>
-                ))
-              ) : (
-                <div className="text-center py-2 text-[11px] text-slate-400">
-                  Tidak ada barang yang cocok dengan "{manualSearch}".
-                </div>
-              )}
+            {/* Hidden inputs */}
+            <input
+              ref={captureInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={(e) => {
+                if (e.target.files?.[0]) processImageFile(e.target.files[0]);
+              }}
+              className="hidden"
+            />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                if (e.target.files?.[0]) processImageFile(e.target.files[0]);
+              }}
+              className="hidden"
+            />
+
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => captureInputRef.current?.click()}
+                className="py-2.5 px-2 bg-white text-blue-700 hover:bg-blue-50 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+              >
+                <Camera className="w-4 h-4 text-blue-600" /> Ambil Foto HP
+              </button>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="py-2.5 px-2 bg-blue-800/60 hover:bg-blue-800/90 text-white border border-blue-400/40 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+              >
+                <ImageIcon className="w-4 h-4 text-blue-200" /> Upload Galeri
+              </button>
             </div>
+            <p className="text-[9.5px] text-blue-100/90 text-center leading-tight pt-0.5">
+              Klik "Ambil Foto HP" jika ingin memfoto barcode langsung tanpa stream live camera browser.
+            </p>
           </div>
 
         </div>

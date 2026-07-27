@@ -74,7 +74,7 @@ export default function NotificationToast({
 
   return (
     <AnimatePresence>
-      <div className="fixed top-20 right-4 z-50 max-w-sm w-full pointer-events-none">
+      <div className="fixed top-18 sm:top-20 left-3 right-3 sm:left-auto sm:right-4 z-50 max-w-sm w-auto sm:w-full ml-auto pointer-events-none">
         <motion.div
           initial={{ opacity: 0, x: 80, scale: 0.9 }}
           animate={{ opacity: 1, x: 0, scale: 1 }}

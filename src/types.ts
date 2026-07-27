@@ -126,6 +126,7 @@ export interface SystemNotification {
   pesan: string;
   tanggal: string;
   read: boolean;
+  readByUsers?: string;
   barangId?: string;
   transaksiId?: string;
   actorName?: string;

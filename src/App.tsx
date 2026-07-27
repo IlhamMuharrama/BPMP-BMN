@@ -27,7 +27,7 @@ import LogoImage from './components/LogoImage';
 import ErrorBoundary from './components/ErrorBoundary';
 import NotificationDetailModal from './components/NotificationDetailModal';
 import NotificationToast from './components/NotificationToast';
-import { filterNotificationsForUser } from './components/Navbar';
+import { filterNotificationsForUser, isNotificationReadByUser, markNotificationAsReadForUser } from './components/Navbar';
 import { playNotificationSound } from './utils/sound';
 
 import { compressImage } from './utils/imageCompressor';
@@ -245,7 +245,9 @@ export default function App() {
                   const visible = filterNotificationsForUser([newest], currentAcc).length > 0;
                   const currentActorName = currentUser ? currentUser.nama : '';
 
-                  if (isRecent && visible && newest.actorName !== currentActorName) {
+                  const isUnreadForMe = !isNotificationReadByUser(newest, currentUser?.username);
+
+                  if (isRecent && visible && isUnreadForMe && newest.actorName !== currentActorName) {
                     playNotificationSound();
                     setActiveToast(newest);
                   }
@@ -895,7 +897,8 @@ const handler = setTimeout(async () => {
   };
 
   const handleMarkNotificationRead = (id: string) => {
-    setNotificationsList(prev => prev.map(n => (n.id === id ? { ...n, read: true } : n)));
+    if (!currentUser) return;
+    setNotificationsList(prev => prev.map(n => (n.id === id ? markNotificationAsReadForUser(n, currentUser.username) : n)));
   };
 
   const handleQuickAddStock = (barangId: string) => {

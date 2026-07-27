@@ -36,6 +36,40 @@ export function filterNotificationsForUser(notifications: SystemNotification[], 
   });
 }
 
+export function isNotificationReadByUser(notification: SystemNotification, username: string | undefined): boolean {
+  if (!username) return !!notification.read;
+  if (notification.readByUsers !== undefined && notification.readByUsers !== null) {
+    let list: string[] = [];
+    if (typeof notification.readByUsers === 'string') {
+      list = notification.readByUsers.split(',').map(s => s.trim()).filter(Boolean);
+    } else if (Array.isArray(notification.readByUsers)) {
+      list = notification.readByUsers;
+    }
+    return list.includes(username);
+  }
+  return !!notification.read;
+}
+
+export function markNotificationAsReadForUser(notification: SystemNotification, username: string): SystemNotification {
+  if (!username) return { ...notification, read: true };
+  let list: string[] = [];
+  if (notification.readByUsers !== undefined && notification.readByUsers !== null) {
+    if (typeof notification.readByUsers === 'string') {
+      list = notification.readByUsers.split(',').map(s => s.trim()).filter(Boolean);
+    } else if (Array.isArray(notification.readByUsers)) {
+      list = [...notification.readByUsers];
+    }
+  }
+  if (!list.includes(username)) {
+    list.push(username);
+  }
+  return {
+    ...notification,
+    readByUsers: list.join(','),
+    read: true
+  };
+}
+
 export default function Navbar({
   activeTab,
   sidebarCollapsed,
@@ -127,21 +161,23 @@ export default function Navbar({
   };
 
   const visibleNotifications = filterNotificationsForUser(notifications, currentUser);
-  const unreadCount = visibleNotifications.filter(n => !n.read).length;
+  const unreadCount = visibleNotifications.filter(n => !isNotificationReadByUser(n, currentUser?.username)).length;
 
   const handleMarkAllRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    if (!currentUser) return;
+    setNotifications(prev => prev.map(n => markNotificationAsReadForUser(n, currentUser.username)));
   };
 
   const handleMarkOneRead = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    if (!currentUser) return;
+    setNotifications(prev => prev.map(n => n.id === id ? markNotificationAsReadForUser(n, currentUser.username) : n));
   };
 
   const handleNotificationClick = (item: SystemNotification) => {
     setShowNotificationPopover(false);
-    if (!item.read) {
-      setNotifications(prev => prev.map(n => n.id === item.id ? { ...n, read: true } : n));
+    if (currentUser && !isNotificationReadByUser(item, currentUser.username)) {
+      setNotifications(prev => prev.map(n => n.id === item.id ? markNotificationAsReadForUser(n, currentUser.username) : n));
     }
     if (onSelectNotification) {
       onSelectNotification(item);
@@ -207,71 +243,112 @@ export default function Navbar({
               setShowNotificationPopover(!showNotificationPopover);
             }}
             className="p-2 hover:bg-slate-50 border border-slate-200 rounded-xl text-slate-600 relative transition-all cursor-pointer"
+            aria-label="Notifikasi"
           >
             <Bell className="w-4 h-4" />
             {unreadCount > 0 && (
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white animate-bounce" />
+              <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-white animate-bounce" />
             )}
           </button>
 
-          {showNotificationPopover && (
-            <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-xl shadow-lg z-40 text-gray-700">
-              <div className="p-3 border-b border-gray-100 flex items-center justify-between">
-                <span className="text-xs font-bold text-gray-900">Pemberitahuan Sistem</span>
-                {unreadCount > 0 && (
-                  <button
-                    onClick={handleMarkAllRead}
-                    className="text-[10px] font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 cursor-pointer"
-                  >
-                    <CheckSquare className="w-3 h-3" /> Tandai Semua Terbaca
-                  </button>
-                )}
-              </div>
-              <div className="max-h-72 overflow-y-auto divide-y divide-gray-100">
-                {visibleNotifications.length === 0 ? (
-                  <div className="p-6 text-center text-xs text-gray-400">
-                    Tidak ada pemberitahuan baru
-                  </div>
-                ) : (
-                  visibleNotifications.map(n => (
-                    <div
-                      key={n.id}
-                      onClick={() => handleNotificationClick(n)}
-                      className={`p-3 text-xs flex gap-2.5 items-start transition-all cursor-pointer hover:bg-slate-50 group relative ${n.read ? 'bg-white' : 'bg-blue-50/50'}`}
-                    >
-                      <div className="mt-0.5 w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
-                        {getNotificationIcon(n.tipe)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-slate-800 leading-snug ${!n.read ? 'font-bold' : 'font-medium'}`}>
-                          {n.pesan}
-                        </p>
-                        <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-1">
-                          <span>
-                            {new Date(n.tanggal).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} • {new Date(n.tanggal).toLocaleDateString('id-ID')}
-                          </span>
-                          {n.actorName && (
-                            <span className="font-semibold text-slate-600 truncate">
-                              • {n.actorName}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      {!n.read && (
-                        <button
-                          onClick={(e) => handleMarkOneRead(n.id, e)}
-                          className="p-1 hover:bg-blue-100 rounded text-slate-400 hover:text-blue-700 transition-colors"
-                          title="Tandai terbaca"
-                        >
-                          <Check className="w-3.5 h-3.5" />
-                        </button>
+          <AnimatePresence>
+            {showNotificationPopover && (
+              <>
+                {/* Mobile Backdrop Overlay */}
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 bg-slate-900/30 backdrop-blur-xs z-40 sm:hidden" 
+                  onClick={() => setShowNotificationPopover(false)} 
+                />
+
+                {/* Popover Card - Mobile Fixed Center-Top, Desktop Absolute Right */}
+                <motion.div 
+                  initial={{ opacity: 0, y: -10, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.96 }}
+                  transition={{ duration: 0.15 }}
+                  className="fixed inset-x-3 top-16 max-w-sm mx-auto sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-2 sm:w-86 sm:max-w-none bg-white border border-slate-200/90 rounded-2xl shadow-2xl z-50 overflow-hidden text-slate-700"
+                >
+                  <div className="p-3.5 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-slate-900">Pemberitahuan Sistem</span>
+                      {unreadCount > 0 && (
+                        <span className="px-2 py-0.5 text-[10px] font-extrabold bg-red-100 text-red-700 rounded-full">
+                          {unreadCount} baru
+                        </span>
                       )}
                     </div>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
+                    <div className="flex items-center gap-2">
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={handleMarkAllRead}
+                          className="text-[10px] font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 cursor-pointer bg-blue-50 px-2 py-1 rounded-lg transition-colors"
+                        >
+                          <CheckSquare className="w-3 h-3" /> Tandai Terbaca
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setShowNotificationPopover(false)}
+                        className="p-1 hover:bg-slate-200/60 rounded-lg text-slate-400 hover:text-slate-600 sm:hidden"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="max-h-[70vh] sm:max-h-80 overflow-y-auto divide-y divide-slate-100">
+                    {visibleNotifications.length === 0 ? (
+                      <div className="p-8 text-center text-xs text-slate-400 font-medium flex flex-col items-center justify-center gap-2">
+                        <Bell className="w-8 h-8 text-slate-200" />
+                        <span>Tidak ada pemberitahuan baru</span>
+                      </div>
+                    ) : (
+                      visibleNotifications.map(n => {
+                        const isRead = isNotificationReadByUser(n, currentUser?.username);
+                        return (
+                          <div
+                            key={n.id}
+                            onClick={() => handleNotificationClick(n)}
+                            className={`p-3 text-xs flex gap-2.5 items-start transition-all cursor-pointer hover:bg-slate-50 group relative ${isRead ? 'bg-white' : 'bg-blue-50/60'}`}
+                          >
+                            <div className="mt-0.5 w-7 h-7 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors shadow-xs">
+                              {getNotificationIcon(n.tipe)}
+                            </div>
+                            <div className="flex-1 min-w-0 pr-1">
+                              <p className={`text-slate-800 leading-snug break-words ${!isRead ? 'font-bold text-slate-900' : 'font-medium text-slate-700'}`}>
+                                {n.pesan}
+                              </p>
+                              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-slate-400 mt-1">
+                                <span>
+                                  {new Date(n.tanggal).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} • {new Date(n.tanggal).toLocaleDateString('id-ID')}
+                                </span>
+                                {n.actorName && (
+                                  <span className="font-semibold text-slate-600 truncate max-w-[120px]">
+                                    • {n.actorName}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            {!isRead && (
+                              <button
+                                onClick={(e) => handleMarkOneRead(n.id, e)}
+                                className="p-1 hover:bg-blue-100 rounded-lg text-slate-400 hover:text-blue-700 transition-colors flex-shrink-0 mt-0.5"
+                                title="Tandai terbaca"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* LOGOUT BUTTON */}

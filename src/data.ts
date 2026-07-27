@@ -309,8 +309,8 @@ export const INITIAL_AUDIT_LOG: AuditLog[] = [
 ];
 
 export const INITIAL_NOTIFICATION: SystemNotification[] = [
-  { id: 'NOT-001', tipe: 'stok_habis', pesan: 'Stok barang "Banner Roll X-Stand Sosialisasi Kurikulum Merdeka" HABIS! Segera lakukan pengadaan.', tanggal: '2026-07-19T16:30:00Z', read: false, barangId: 'BRG-005' },
-  { id: 'NOT-002', tipe: 'stok_rendah', pesan: 'Stok barang "Flashdisk SanDisk Ultra 64GB USB 3.0" tersisa 2 Pcs (Stok minimum: 5).', tanggal: '2026-07-20T09:00:00Z', read: false, barangId: 'BRG-003' }
+  { id: 'NOT-001', tipe: 'stok_habis', pesan: 'Stok barang "Banner Roll X-Stand Sosialisasi Kurikulum Merdeka" HABIS! Segera lakukan pengadaan.', tanggal: '2026-07-19T16:30:00Z', read: false, readByUsers: '', barangId: 'BRG-005' },
+  { id: 'NOT-002', tipe: 'stok_rendah', pesan: 'Stok barang "Flashdisk SanDisk Ultra 64GB USB 3.0" tersisa 2 Pcs (Stok minimum: 5).', tanggal: '2026-07-20T09:00:00Z', read: false, readByUsers: '', barangId: 'BRG-003' }
 ];
 
 export const DEFAULT_SETTINGS: Settings = {
