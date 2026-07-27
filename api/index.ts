@@ -22,6 +22,16 @@ const sheets = google.sheets({ version: "v4", auth });
 const drive = google.drive({ version: "v3", auth });
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 
+// Helper untuk mengambil SPREADSHEET_ID dari env atau request
+const getSpreadsheetId = (req: express.Request) => {
+  return (
+    (req.query.spreadsheetId as string) ||
+    req.body?.spreadsheetId ||
+    req.body?.Settings?.spreadsheetId ||
+    SPREADSHEET_ID
+  );
+};
+
 // Daftar tabel/entitas (Sheet Name)
 const SHEET_NAMES = [
   "Barang", "Kategori", "Supplier", "Unit", "Satuan", "Pegawai", 
@@ -110,11 +120,26 @@ app.get("/api/sync", async (req, res) => {
       return res.json(memoryCache);
     }
 
-    if (!SPREADSHEET_ID) throw new Error("SPREADSHEET_ID tidak dikonfigurasi. Pastikan Environment Variable di Vercel sudah diatur.");
+    const targetSpreadsheetId = getSpreadsheetId(req);
+    if (!targetSpreadsheetId) {
+      if (memoryCache) return res.json(memoryCache);
+      return res.status(400).json({ 
+        error: "SPREADSHEET_ID belum dikonfigurasi. Atur ID Spreadsheet di Pengaturan > Integrasi Cloud atau di Vercel Environment Variables.",
+        code: "NO_SPREADSHEET_ID" 
+      });
+    }
+
+    if (!process.env.GOOGLE_CLIENT_EMAIL || !process.env.GOOGLE_PRIVATE_KEY) {
+      if (memoryCache) return res.json(memoryCache);
+      return res.status(400).json({
+        error: "Google Service Account (GOOGLE_CLIENT_EMAIL & GOOGLE_PRIVATE_KEY) belum dikonfigurasi di Server/Vercel.",
+        code: "NO_GOOGLE_AUTH_KEYS"
+      });
+    }
 
     // Coba ambil info spreadsheet untuk memastikan sheet ada
     const spreadsheet = await sheets.spreadsheets.get({
-      spreadsheetId: SPREADSHEET_ID,
+      spreadsheetId: targetSpreadsheetId,
     });
     
     const existingSheets = spreadsheet.data.sheets?.map(s => s.properties?.title) || [];
@@ -126,7 +151,7 @@ app.get("/api/sync", async (req, res) => {
     for (const sheetName of SHEET_NAMES) {
       if (existingSheets.includes(sheetName)) {
         const response = await sheets.spreadsheets.values.get({
-          spreadsheetId: SPREADSHEET_ID,
+          spreadsheetId: targetSpreadsheetId,
           range: `${sheetName}!A1:Z`,
         });
         
@@ -141,6 +166,9 @@ app.get("/api/sync", async (req, res) => {
     res.json(allData);
   } catch (error: any) {
     console.error("Gagal mengambil data dari Spreadsheet:", error);
+    if (memoryCache) {
+      return res.json(memoryCache);
+    }
     res.status(500).json({ error: error.message });
   }
 });
@@ -148,13 +176,28 @@ app.get("/api/sync", async (req, res) => {
 // 2. MENYIMPAN SELURUH DATA KE SPREADSHEET (Full Override)
 app.post("/api/sync", async (req, res) => {
   try {
-    if (!SPREADSHEET_ID) throw new Error("SPREADSHEET_ID tidak dikonfigurasi.");
-
+    const targetSpreadsheetId = getSpreadsheetId(req);
     const incomingData = req.body;
-    
+
+    if (!targetSpreadsheetId) {
+      memoryCache = incomingData;
+      return res.status(400).json({ 
+        error: "SPREADSHEET_ID tidak ditemukan. Silakan masukkan ID Spreadsheet di menu Pengaturan > Integrasi Cloud.",
+        code: "NO_SPREADSHEET_ID"
+      });
+    }
+
+    if (!process.env.GOOGLE_CLIENT_EMAIL || !process.env.GOOGLE_PRIVATE_KEY) {
+      memoryCache = incomingData;
+      return res.status(400).json({
+        error: "Google Service Account Credentials belum diatur di Vercel/Server. Data disimpan sementara di memori aplikasi.",
+        code: "NO_GOOGLE_AUTH_KEYS"
+      });
+    }
+
     // 1. Pastikan semua sheet yang dibutuhkan ada
     const spreadsheet = await sheets.spreadsheets.get({
-      spreadsheetId: SPREADSHEET_ID,
+      spreadsheetId: targetSpreadsheetId,
     });
     const existingSheets = spreadsheet.data.sheets?.map(s => s.properties?.title) || [];
     const sheetsToCreate = SHEET_NAMES.filter(name => !existingSheets.includes(name));
@@ -164,26 +207,23 @@ app.post("/api/sync", async (req, res) => {
         addSheet: { properties: { title } }
       }));
       await sheets.spreadsheets.batchUpdate({
-        spreadsheetId: SPREADSHEET_ID,
+        spreadsheetId: targetSpreadsheetId,
         requestBody: { requests }
       });
     }
 
     // 2. Clear existing data and Update with new data
-    // Kita gunakan batch update values
     const dataUpdates: any[] = [];
     const clearRanges: string[] = [];
     
     for (const sheetName of SHEET_NAMES) {
       if (incomingData[sheetName]) {
         const dataForSheet = incomingData[sheetName];
-        // Pastikan bukan array kosong tanpa data
         let values = [[]]; // Default empty
         
         if (Array.isArray(dataForSheet) && dataForSheet.length > 0) {
            values = jsonToSheetData(dataForSheet);
         } else if (typeof dataForSheet === 'object' && Object.keys(dataForSheet).length > 0) {
-           // Untuk Settings (Single Object)
            values = jsonToSheetData([dataForSheet]);
         }
         
@@ -198,7 +238,7 @@ app.post("/api/sync", async (req, res) => {
     // Clear old data first
     if (clearRanges.length > 0) {
        await sheets.spreadsheets.values.batchClear({
-         spreadsheetId: SPREADSHEET_ID,
+         spreadsheetId: targetSpreadsheetId,
          requestBody: { ranges: clearRanges }
        });
     }
@@ -206,7 +246,7 @@ app.post("/api/sync", async (req, res) => {
     // Write new data
     if (dataUpdates.length > 0) {
       await sheets.spreadsheets.values.batchUpdate({
-        spreadsheetId: SPREADSHEET_ID,
+        spreadsheetId: targetSpreadsheetId,
         requestBody: {
           valueInputOption: "USER_ENTERED",
           data: dataUpdates
