@@ -87,17 +87,6 @@ const INITIAL_ACCOUNTS: UserAccount[] = [
     role: 'Petugas BMN',
     status: 'Disetujui',
     registeredAt: '2026-07-18T08:00:00Z'
-  },
-  {
-    username: 'budi_baru',
-    nama: 'Budi Budiman',
-    nip: '199112022019031005',
-    jabatan: 'Petugas BMN Baru',
-    telepon: '08981741680',
-    password: 'budi',
-    role: 'Petugas BMN',
-    status: 'Pending',
-    registeredAt: '2026-07-20T11:45:00Z'
   }
 ];
 
@@ -150,7 +139,7 @@ export default function App() {
   const getCachedData = (key: string, fallback: any) => {
     if (typeof window === 'undefined') return fallback;
     try {
-      const cached = localStorage.getItem('bpmp_bmn_cache_' + key);
+      const cached = localStorage.getItem('bpmp_bmn_prod_v1_cache_' + key);
       if (cached) return JSON.parse(cached);
     } catch(e) {}
     return fallback;
@@ -192,7 +181,7 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [activeToast]);
 
-  const hasCache = typeof window !== 'undefined' && !!localStorage.getItem('bpmp_bmn_cache_barangList');
+  const hasCache = typeof window !== 'undefined' && !!localStorage.getItem('bpmp_bmn_prod_v1_cache_barangList');
   const [isLoading, setIsLoading] = useState(!hasCache);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -338,19 +327,19 @@ export default function App() {
     
     // Save to local cache first for fast load on next refresh
     try {
-      localStorage.setItem('bpmp_bmn_cache_accounts', JSON.stringify(accounts));
-      localStorage.setItem('bpmp_bmn_cache_barangList', JSON.stringify(barangList));
-      localStorage.setItem('bpmp_bmn_cache_kategoriList', JSON.stringify(kategoriList));
-      localStorage.setItem('bpmp_bmn_cache_supplierList', JSON.stringify(supplierList));
-      localStorage.setItem('bpmp_bmn_cache_unitList', JSON.stringify(unitList));
-      localStorage.setItem('bpmp_bmn_cache_satuanList', JSON.stringify(satuanList));
-      localStorage.setItem('bpmp_bmn_cache_pegawaiList', JSON.stringify(pegawaiList));
-      localStorage.setItem('bpmp_bmn_cache_barangMasukList', JSON.stringify(barangMasukList));
-      localStorage.setItem('bpmp_bmn_cache_barangKeluarList', JSON.stringify(barangKeluarList));
-      localStorage.setItem('bpmp_bmn_cache_riwayatList', JSON.stringify(riwayatList));
-      localStorage.setItem('bpmp_bmn_cache_auditLogsList', JSON.stringify(auditLogsList));
-      localStorage.setItem('bpmp_bmn_cache_notificationsList', JSON.stringify(notificationsList));
-      localStorage.setItem('bpmp_bmn_cache_settings', JSON.stringify(settings));
+      localStorage.setItem('bpmp_bmn_prod_v1_cache_accounts', JSON.stringify(accounts));
+      localStorage.setItem('bpmp_bmn_prod_v1_cache_barangList', JSON.stringify(barangList));
+      localStorage.setItem('bpmp_bmn_prod_v1_cache_kategoriList', JSON.stringify(kategoriList));
+      localStorage.setItem('bpmp_bmn_prod_v1_cache_supplierList', JSON.stringify(supplierList));
+      localStorage.setItem('bpmp_bmn_prod_v1_cache_unitList', JSON.stringify(unitList));
+      localStorage.setItem('bpmp_bmn_prod_v1_cache_satuanList', JSON.stringify(satuanList));
+      localStorage.setItem('bpmp_bmn_prod_v1_cache_pegawaiList', JSON.stringify(pegawaiList));
+      localStorage.setItem('bpmp_bmn_prod_v1_cache_barangMasukList', JSON.stringify(barangMasukList));
+      localStorage.setItem('bpmp_bmn_prod_v1_cache_barangKeluarList', JSON.stringify(barangKeluarList));
+      localStorage.setItem('bpmp_bmn_prod_v1_cache_riwayatList', JSON.stringify(riwayatList));
+      localStorage.setItem('bpmp_bmn_prod_v1_cache_auditLogsList', JSON.stringify(auditLogsList));
+      localStorage.setItem('bpmp_bmn_prod_v1_cache_notificationsList', JSON.stringify(notificationsList));
+      localStorage.setItem('bpmp_bmn_prod_v1_cache_settings', JSON.stringify(settings));
     } catch(e) { console.error('Failed to cache data', e); }
 
 const handler = setTimeout(async () => {
