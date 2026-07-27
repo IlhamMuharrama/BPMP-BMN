@@ -139,28 +139,21 @@ export default function App() {
   const getCachedData = (key: string, fallback: any) => {
     if (typeof window === 'undefined') return fallback;
     try {
-      const cached = localStorage.getItem('bpmp_bmn_prod_clean_v5_cache_' + key);
+      const cached = localStorage.getItem('bpmp_bmn_prod_clean_v4_cache_' + key);
       if (cached) return JSON.parse(cached);
     } catch(e) {}
     return fallback;
   };
 
-  const mergeWithInitial = <T,>(incoming: any[], initial: T[], keyProp: keyof T = 'id' as keyof T): T[] => {
-    if (!Array.isArray(incoming) || incoming.length === 0) return initial;
-    const existingIds = new Set(incoming.map((item: any) => item[keyProp]));
-    const missingInitial = initial.filter((item: T) => !existingIds.has(item[keyProp]));
-    return [...incoming, ...missingInitial];
-  };
-
-  const [accounts, setAccounts] = useState<UserAccount[]>(() => mergeWithInitial(getCachedData('accounts', []), INITIAL_ACCOUNTS, 'username'));
+  const [accounts, setAccounts] = useState<UserAccount[]>(() => getCachedData('accounts', INITIAL_ACCOUNTS));
 
   // Core database states
-  const [barangList, setBarangList] = useState<Barang[]>(() => mergeWithInitial(getCachedData('barangList', []), INITIAL_BARANG));
-  const [kategoriList, setKategoriList] = useState<Kategori[]>(() => mergeWithInitial(getCachedData('kategoriList', []), INITIAL_KATEGORI));
-  const [supplierList, setSupplierList] = useState<Supplier[]>(() => mergeWithInitial(getCachedData('supplierList', []), INITIAL_SUPPLIER));
-  const [unitList, setUnitList] = useState<Unit[]>(() => mergeWithInitial(getCachedData('unitList', []), INITIAL_UNIT));
-  const [satuanList, setSatuanList] = useState<Satuan[]>(() => mergeWithInitial(getCachedData('satuanList', []), INITIAL_SATUAN));
-  const [pegawaiList, setPegawaiList] = useState<Pegawai[]>(() => mergeWithInitial(getCachedData('pegawaiList', []), INITIAL_PEGAWAI));
+  const [barangList, setBarangList] = useState<Barang[]>(() => getCachedData('barangList', INITIAL_BARANG));
+  const [kategoriList, setKategoriList] = useState<Kategori[]>(() => getCachedData('kategoriList', INITIAL_KATEGORI));
+  const [supplierList, setSupplierList] = useState<Supplier[]>(() => getCachedData('supplierList', INITIAL_SUPPLIER));
+  const [unitList, setUnitList] = useState<Unit[]>(() => getCachedData('unitList', INITIAL_UNIT));
+  const [satuanList, setSatuanList] = useState<Satuan[]>(() => getCachedData('satuanList', INITIAL_SATUAN));
+  const [pegawaiList, setPegawaiList] = useState<Pegawai[]>(() => getCachedData('pegawaiList', INITIAL_PEGAWAI));
   const [barangMasukList, setBarangMasukList] = useState<BarangMasuk[]>(() => getCachedData('barangMasukList', INITIAL_BARANG_MASUK));
   const [barangKeluarList, setBarangKeluarList] = useState<BarangKeluar[]>(() => getCachedData('barangKeluarList', INITIAL_BARANG_KELUAR));
   const [riwayatList, setRiwayatList] = useState<Riwayat[]>(() => getCachedData('riwayatList', INITIAL_RIWAYAT));
@@ -188,7 +181,7 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [activeToast]);
 
-  const hasCache = typeof window !== 'undefined' && !!localStorage.getItem('bpmp_bmn_prod_clean_v5_cache_barangList');
+  const hasCache = typeof window !== 'undefined' && !!localStorage.getItem('bpmp_bmn_prod_clean_v4_cache_barangList');
   const [isLoading, setIsLoading] = useState(!hasCache);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -209,12 +202,12 @@ export default function App() {
         if (res.ok) {
           const data = await res.json();
           skipNextSaveRef.current = true;
-          setBarangList(mergeWithInitial(Array.isArray(data.Barang) ? data.Barang : [], INITIAL_BARANG));
-          setKategoriList(mergeWithInitial(Array.isArray(data.Kategori) ? data.Kategori : [], INITIAL_KATEGORI));
-          setSupplierList(mergeWithInitial(Array.isArray(data.Supplier) ? data.Supplier : [], INITIAL_SUPPLIER));
-          setUnitList(mergeWithInitial(Array.isArray(data.Unit) ? data.Unit : [], INITIAL_UNIT));
-          setSatuanList(mergeWithInitial(Array.isArray(data.Satuan) ? data.Satuan : [], INITIAL_SATUAN));
-          setPegawaiList(mergeWithInitial(Array.isArray(data.Pegawai) ? data.Pegawai : [], INITIAL_PEGAWAI));
+          if (Array.isArray(data.Barang)) setBarangList(data.Barang);
+          if (Array.isArray(data.Kategori)) setKategoriList(data.Kategori);
+          if (Array.isArray(data.Supplier)) setSupplierList(data.Supplier);
+          if (Array.isArray(data.Unit)) setUnitList(data.Unit);
+          if (Array.isArray(data.Satuan)) setSatuanList(data.Satuan);
+          if (Array.isArray(data.Pegawai)) setPegawaiList(data.Pegawai);
           if (Array.isArray(data.BarangMasuk)) setBarangMasukList(data.BarangMasuk);
           if (Array.isArray(data.BarangKeluar)) setBarangKeluarList(data.BarangKeluar);
           if (Array.isArray(data.Riwayat)) setRiwayatList(data.Riwayat);
@@ -334,19 +327,19 @@ export default function App() {
     
     // Save to local cache first for fast load on next refresh
     try {
-      localStorage.setItem('bpmp_bmn_prod_clean_v5_cache_accounts', JSON.stringify(accounts));
-      localStorage.setItem('bpmp_bmn_prod_clean_v5_cache_barangList', JSON.stringify(barangList));
-      localStorage.setItem('bpmp_bmn_prod_clean_v5_cache_kategoriList', JSON.stringify(kategoriList));
-      localStorage.setItem('bpmp_bmn_prod_clean_v5_cache_supplierList', JSON.stringify(supplierList));
-      localStorage.setItem('bpmp_bmn_prod_clean_v5_cache_unitList', JSON.stringify(unitList));
-      localStorage.setItem('bpmp_bmn_prod_clean_v5_cache_satuanList', JSON.stringify(satuanList));
-      localStorage.setItem('bpmp_bmn_prod_clean_v5_cache_pegawaiList', JSON.stringify(pegawaiList));
-      localStorage.setItem('bpmp_bmn_prod_clean_v5_cache_barangMasukList', JSON.stringify(barangMasukList));
-      localStorage.setItem('bpmp_bmn_prod_clean_v5_cache_barangKeluarList', JSON.stringify(barangKeluarList));
-      localStorage.setItem('bpmp_bmn_prod_clean_v5_cache_riwayatList', JSON.stringify(riwayatList));
-      localStorage.setItem('bpmp_bmn_prod_clean_v5_cache_auditLogsList', JSON.stringify(auditLogsList));
-      localStorage.setItem('bpmp_bmn_prod_clean_v5_cache_notificationsList', JSON.stringify(notificationsList));
-      localStorage.setItem('bpmp_bmn_prod_clean_v5_cache_settings', JSON.stringify(settings));
+      localStorage.setItem('bpmp_bmn_prod_clean_v4_cache_accounts', JSON.stringify(accounts));
+      localStorage.setItem('bpmp_bmn_prod_clean_v4_cache_barangList', JSON.stringify(barangList));
+      localStorage.setItem('bpmp_bmn_prod_clean_v4_cache_kategoriList', JSON.stringify(kategoriList));
+      localStorage.setItem('bpmp_bmn_prod_clean_v4_cache_supplierList', JSON.stringify(supplierList));
+      localStorage.setItem('bpmp_bmn_prod_clean_v4_cache_unitList', JSON.stringify(unitList));
+      localStorage.setItem('bpmp_bmn_prod_clean_v4_cache_satuanList', JSON.stringify(satuanList));
+      localStorage.setItem('bpmp_bmn_prod_clean_v4_cache_pegawaiList', JSON.stringify(pegawaiList));
+      localStorage.setItem('bpmp_bmn_prod_clean_v4_cache_barangMasukList', JSON.stringify(barangMasukList));
+      localStorage.setItem('bpmp_bmn_prod_clean_v4_cache_barangKeluarList', JSON.stringify(barangKeluarList));
+      localStorage.setItem('bpmp_bmn_prod_clean_v4_cache_riwayatList', JSON.stringify(riwayatList));
+      localStorage.setItem('bpmp_bmn_prod_clean_v4_cache_auditLogsList', JSON.stringify(auditLogsList));
+      localStorage.setItem('bpmp_bmn_prod_clean_v4_cache_notificationsList', JSON.stringify(notificationsList));
+      localStorage.setItem('bpmp_bmn_prod_clean_v4_cache_settings', JSON.stringify(settings));
     } catch(e) { console.error('Failed to cache data', e); }
 
 const handler = setTimeout(async () => {
