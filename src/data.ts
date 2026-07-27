@@ -6,11 +6,36 @@
 import { Kategori, Supplier, Unit, Satuan, Barang, BarangMasuk, BarangKeluar, Riwayat, AuditLog, SystemNotification, Settings, Pegawai, DriveFileItem } from './types';
 
 export const INITIAL_KATEGORI: Kategori[] = [
-  { id: 'KAT-001', nama: 'Alat Tulis Kantor (ATK)', deskripsi: 'Kebutuhan alat tulis dan kertas kantor sehari-hari' },
-  { id: 'KAT-002', nama: 'Peralatan Komputer & IT', deskripsi: 'Hardware, software, peripheral, dan jaringan internet' },
-  { id: 'KAT-003', nama: 'Sarana Sosialisasi & Publikasi', deskripsi: 'Spanduk, brosur, banner, merchandise, dan media humas' },
-  { id: 'KAT-004', nama: 'Konsumsi & Logistik Acara', deskripsi: 'Makanan, minuman, paket rapat, dan kelengkapan kegiatan' },
-  { id: 'KAT-005', nama: 'Sarana Kebersihan & Sanitasi', deskripsi: 'Pembersih lantai, cairan antiseptik, tisu, dan hand sanitizer' }
+  {
+    id: '1010301001',
+    nama: 'ALAT TULIS',
+    deskripsi: 'Kebutuhan alat tulis kantor dan perlengkapan penulisan',
+    qrCodeUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=1010301001'
+  },
+  {
+    id: '1010301002',
+    nama: 'TINTA TULIS, TINTA STEMPEL',
+    deskripsi: 'Tinta printer, tinta stempel, dan cairan pengisi ulang',
+    qrCodeUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=1010301002'
+  },
+  {
+    id: '1010301003',
+    nama: 'PENJEPIT KERTAS',
+    deskripsi: 'Klip kertas, necis, isi necis, binder clip, dan stapler',
+    qrCodeUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=1010301003'
+  },
+  {
+    id: '1010301004',
+    nama: 'PERALATAN KOMPUTER & IT',
+    deskripsi: 'Hardware, flashdisk, mouse, peripheral, dan aksesoris IT',
+    qrCodeUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=1010301004'
+  },
+  {
+    id: '1010301005',
+    nama: 'SARANA KEBERSIHAN & SANITASI',
+    deskripsi: 'Pembersih lantai, hand sanitizer, tisu, dan sabun antiseptik',
+    qrCodeUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=1010301005'
+  }
 ];
 
 export const INITIAL_SUPPLIER: Supplier[] = [
@@ -33,121 +58,210 @@ export const INITIAL_SATUAN: Satuan[] = [
   { id: 'SAT-003', nama: 'Pcs', keterangan: 'Satuan per biji / pieces' },
   { id: 'SAT-004', nama: 'Dus', keterangan: 'Karton besar berisi volume banyak' },
   { id: 'SAT-005', nama: 'Unit', keterangan: 'Untuk peralatan elektronik / mesin' },
-  { id: 'SAT-006', nama: 'Pack', keterangan: 'Kemasan bungkus kecil' }
+  { id: 'SAT-006', nama: 'Kotak', keterangan: 'Kemasan kotak kecil' }
 ];
 
 export const INITIAL_BARANG: Barang[] = [
+  // 1010301001: ALAT TULIS
   {
-    id: 'BRG-001',
-    nama: 'Kertas HVS A4 80gr Sinar Dunia',
-    kategori: 'Alat Tulis Kantor (ATK)',
+    id: '000001',
+    kategoriId: '1010301001',
+    kategori: 'ALAT TULIS',
+    nama: 'Pena Click G2 Pilot',
     supplier: 'Toko ATK Utama Jaya',
-    satuan: 'Rim',
+    satuan: 'Box',
     lokasiRak: 'Rak ATK - A1',
-    qrCodeUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=BRG-001',
-    stokSekarang: 45,
-    stokMin: 15,
-    stokMaks: 100,
-    deskripsi: 'Kertas HVS putih ukuran A4 berat 80gr untuk cetak laporan evaluasi mutu sekolah.',
-    imageUrl: 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&q=80&w=200',
+    stokSekarang: 25,
+    stokMin: 5,
+    stokMaks: 50,
+    deskripsi: 'Pena gel hitam 0.5mm merk Pilot Click G2',
+    imageUrl: 'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?auto=format&fit=crop&q=80&w=200',
     createdAt: '2026-05-10T08:00:00Z',
     updatedAt: '2026-07-15T10:30:00Z'
   },
   {
-    id: 'BRG-002',
-    nama: 'Pulpen Standard AE7 Hitam',
-    kategori: 'Alat Tulis Kantor (ATK)',
+    id: '000002',
+    kategoriId: '1010301001',
+    kategori: 'ALAT TULIS',
+    nama: 'Kertas HVS A4 80gr Sinar Dunia',
     supplier: 'Toko ATK Utama Jaya',
-    satuan: 'Box',
+    satuan: 'Rim',
     lokasiRak: 'Rak ATK - A2',
-    qrCodeUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=BRG-002',
-    stokSekarang: 12,
-    stokMin: 5,
-    stokMaks: 30,
-    deskripsi: 'Pulpen gel tinta hitam 0.5mm, nyaman untuk penulisan tanda tangan dokumen dinas.',
-    imageUrl: 'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?auto=format&fit=crop&q=80&w=200',
+    stokSekarang: 45,
+    stokMin: 15,
+    stokMaks: 100,
+    deskripsi: 'Kertas HVS putih ukuran A4 berat 80gr',
+    imageUrl: 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&q=80&w=200',
     createdAt: '2026-05-10T08:15:00Z',
     updatedAt: '2026-07-18T14:20:00Z'
   },
   {
-    id: 'BRG-003',
+    id: '000003',
+    kategoriId: '1010301001',
+    kategori: 'ALAT TULIS',
+    nama: 'Pulpen Standard AE7 Hitam',
+    supplier: 'Toko ATK Utama Jaya',
+    satuan: 'Box',
+    lokasiRak: 'Rak ATK - A3',
+    stokSekarang: 12,
+    stokMin: 5,
+    stokMaks: 30,
+    deskripsi: 'Pulpen Standard AE7 hitam 0.5mm',
+    imageUrl: 'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?auto=format&fit=crop&q=80&w=200',
+    createdAt: '2026-05-10T08:20:00Z',
+    updatedAt: '2026-07-18T14:20:00Z'
+  },
+
+  // 1010301002: TINTA TULIS, TINTA STEMPEL
+  {
+    id: '000001',
+    kategoriId: '1010301002',
+    kategori: 'TINTA TULIS, TINTA STEMPEL',
+    nama: 'Tinta Cao Press',
+    supplier: 'Toko ATK Utama Jaya',
+    satuan: 'Pcs',
+    lokasiRak: 'Rak Tinta - B1',
+    stokSekarang: 15,
+    stokMin: 3,
+    stokMaks: 30,
+    deskripsi: 'Tinta stempel Cao Press warna ungu',
+    imageUrl: 'https://images.unsplash.com/photo-1585336261026-6757f541a674?auto=format&fit=crop&q=80&w=200',
+    createdAt: '2026-05-11T09:00:00Z',
+    updatedAt: '2026-07-19T10:00:00Z'
+  },
+  {
+    id: '000002',
+    kategoriId: '1010301002',
+    kategori: 'TINTA TULIS, TINTA STEMPEL',
+    nama: 'Tinta Stempel Yamura 50ml',
+    supplier: 'Toko ATK Utama Jaya',
+    satuan: 'Pcs',
+    lokasiRak: 'Rak Tinta - B2',
+    stokSekarang: 8,
+    stokMin: 2,
+    stokMaks: 20,
+    deskripsi: 'Tinta stempel isi ulang 50ml',
+    imageUrl: 'https://images.unsplash.com/photo-1585336261026-6757f541a674?auto=format&fit=crop&q=80&w=200',
+    createdAt: '2026-05-11T09:30:00Z',
+    updatedAt: '2026-07-19T10:30:00Z'
+  },
+
+  // 1010301003: PENJEPIT KERTAS
+  {
+    id: '000001',
+    kategoriId: '1010301003',
+    kategori: 'PENJEPIT KERTAS',
+    nama: 'NECIS NO.10 KECIL',
+    supplier: 'Toko ATK Utama Jaya',
+    satuan: 'Box',
+    lokasiRak: 'Rak Klip - C1',
+    stokSekarang: 20,
+    stokMin: 5,
+    stokMaks: 40,
+    deskripsi: 'Stapler/necis ukuran No.10 kecil',
+    imageUrl: 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&q=80&w=200',
+    createdAt: '2026-05-12T10:00:00Z',
+    updatedAt: '2026-07-20T11:00:00Z'
+  },
+  {
+    id: '000002',
+    kategoriId: '1010301003',
+    kategori: 'PENJEPIT KERTAS',
+    nama: 'ISI NECIS NO. 10',
+    supplier: 'Toko ATK Utama Jaya',
+    satuan: 'Kotak',
+    lokasiRak: 'Rak Klip - C2',
+    stokSekarang: 50,
+    stokMin: 10,
+    stokMaks: 100,
+    deskripsi: 'Isi staples / necis ukuran No.10 Max',
+    imageUrl: 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&q=80&w=200',
+    createdAt: '2026-05-12T10:15:00Z',
+    updatedAt: '2026-07-20T11:15:00Z'
+  },
+  {
+    id: '000003',
+    kategoriId: '1010301003',
+    kategori: 'PENJEPIT KERTAS',
+    nama: 'KLIP KERTAS',
+    supplier: 'Toko ATK Utama Jaya',
+    satuan: 'Box',
+    lokasiRak: 'Rak Klip - C3',
+    stokSekarang: 30,
+    stokMin: 5,
+    stokMaks: 60,
+    deskripsi: 'Paper clip / klip kertas nomor 3 Joyko',
+    imageUrl: 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&q=80&w=200',
+    createdAt: '2026-05-12T10:30:00Z',
+    updatedAt: '2026-07-20T11:30:00Z'
+  },
+  {
+    id: '000004',
+    kategoriId: '1010301003',
+    kategori: 'PENJEPIT KERTAS',
+    nama: 'BINDER NO 111',
+    supplier: 'Toko ATK Utama Jaya',
+    satuan: 'Box',
+    lokasiRak: 'Rak Klip - C4',
+    stokSekarang: 18,
+    stokMin: 4,
+    stokMaks: 40,
+    deskripsi: 'Binder clip no. 111 hitam',
+    imageUrl: 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&q=80&w=200',
+    createdAt: '2026-05-12T10:45:00Z',
+    updatedAt: '2026-07-20T11:45:00Z'
+  },
+
+  // 1010301004: PERALATAN KOMPUTER & IT
+  {
+    id: '000001',
+    kategoriId: '1010301004',
+    kategori: 'PERALATAN KOMPUTER & IT',
     nama: 'Flashdisk SanDisk Ultra 64GB USB 3.0',
-    kategori: 'Peralatan Komputer & IT',
     supplier: 'PT Tekno Mandiri Sumsel',
     satuan: 'Pcs',
     lokasiRak: 'Laci Elektronik - E1',
-    qrCodeUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=BRG-003',
     stokSekarang: 2,
     stokMin: 5,
     stokMaks: 20,
-    deskripsi: 'Flashdisk kecepatan tinggi USB 3.0 untuk memindahkan data instrumen akreditasi sekolah.',
+    deskripsi: 'Flashdisk kecepatan tinggi USB 3.0',
     imageUrl: 'https://images.unsplash.com/photo-1618424181497-157f25b6ddd5?auto=format&fit=crop&q=80&w=200',
     createdAt: '2026-05-12T09:30:00Z',
     updatedAt: '2026-07-20T09:00:00Z'
   },
   {
-    id: 'BRG-004',
+    id: '000002',
+    kategoriId: '1010301004',
+    kategori: 'PERALATAN KOMPUTER & IT',
     nama: 'Mouse Wireless Logitech M170',
-    kategori: 'Peralatan Komputer & IT',
     supplier: 'PT Tekno Mandiri Sumsel',
     satuan: 'Pcs',
     lokasiRak: 'Laci Elektronik - E2',
-    qrCodeUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=BRG-004',
     stokSekarang: 18,
     stokMin: 4,
     stokMaks: 25,
-    deskripsi: 'Mouse wireless ergonomis untuk kemudahan operasional laptop staf pemetaan pendidikan.',
+    deskripsi: 'Mouse wireless ergonomis',
     imageUrl: 'https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?auto=format&fit=crop&q=80&w=200',
     createdAt: '2026-05-12T09:45:00Z',
     updatedAt: '2026-07-10T11:00:00Z'
   },
+
+  // 1010301005: SARANA KEBERSIHAN & SANITASI
   {
-    id: 'BRG-005',
-    nama: 'Banner Roll X-Stand Sosialisasi Kurikulum Merdeka',
-    kategori: 'Sarana Sosialisasi & Publikasi',
-    supplier: 'CV Sriwijaya Abadi Jaya',
-    satuan: 'Pcs',
-    lokasiRak: 'Gudang Promosi - B1',
-    qrCodeUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=BRG-005',
-    stokSekarang: 0,
-    stokMin: 2,
-    stokMaks: 10,
-    deskripsi: 'Roll up banner ukuran 60x160cm dengan materi sosialisasi kurikulum nasional.',
-    imageUrl: 'https://images.unsplash.com/photo-1533750349088-cd871a92f312?auto=format&fit=crop&q=80&w=200',
-    createdAt: '2026-05-15T11:00:00Z',
-    updatedAt: '2026-07-19T16:30:00Z'
-  },
-  {
-    id: 'BRG-006',
-    nama: 'Air Mineral Cup Wahana 240ml',
-    kategori: 'Konsumsi & Logistik Acara',
-    supplier: 'CV Indah Boga Catering',
-    satuan: 'Dus',
-    lokasiRak: 'Gudang Konsumsi - C1',
-    qrCodeUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=BRG-006',
-    stokSekarang: 35,
-    stokMin: 10,
-    stokMaks: 60,
-    deskripsi: 'Air minum cup untuk konsumsi peserta rapat koordinasi kepala sekolah se-Sumsel.',
-    imageUrl: 'https://images.unsplash.com/photo-1548839130-3fd96cd5cc49?auto=format&fit=crop&q=80&w=200',
-    createdAt: '2026-05-20T14:00:00Z',
-    updatedAt: '2026-07-20T10:00:00Z'
-  },
-  {
-    id: 'BRG-007',
+    id: '000001',
+    kategoriId: '1010301005',
+    kategori: 'SARANA KEBERSIHAN & SANITASI',
     nama: 'Hand Sanitizer Gel Antis 500ml',
-    kategori: 'Sarana Kebersihan & Sanitasi',
     supplier: 'CV Sriwijaya Abadi Jaya',
-    satuan: 'Pcs',
+    satuan: 'Botol',
     lokasiRak: 'Gudang Kebersihan - D1',
-    qrCodeUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=BRG-007',
-    stokSekarang: 24,
-    stokMin: 8,
-    stokMaks: 40,
-    deskripsi: 'Cairan sanitasi tangan anti kuman untuk ditempatkan di setiap pintu masuk ruang rapat BPMP.',
+    stokSekarang: 22,
+    stokMin: 5,
+    stokMaks: 50,
+    deskripsi: 'Cairan pembersih tangan antiseptik 500ml botol pump',
     imageUrl: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&q=80&w=200',
-    createdAt: '2026-05-22T08:30:00Z',
-    updatedAt: '2026-07-14T09:15:00Z'
+    createdAt: '2026-05-22T08:00:00Z',
+    updatedAt: '2026-07-15T09:00:00Z'
   }
 ];
 
@@ -155,7 +269,7 @@ export const INITIAL_BARANG_MASUK: BarangMasuk[] = [
   {
     id: 'TRM-260710-01',
     tanggal: '2026-07-10T09:00:00Z',
-    barangId: 'BRG-004',
+    barangId: '000002',
     namaBarang: 'Mouse Wireless Logitech M170',
     jumlah: 15,
     supplier: 'PT Tekno Mandiri Sumsel',
@@ -166,24 +280,13 @@ export const INITIAL_BARANG_MASUK: BarangMasuk[] = [
   {
     id: 'TRM-260715-01',
     tanggal: '2026-07-15T10:30:00Z',
-    barangId: 'BRG-001',
+    barangId: '000002',
     namaBarang: 'Kertas HVS A4 80gr Sinar Dunia',
     jumlah: 30,
     supplier: 'Toko ATK Utama Jaya',
     petugas: 'Roni Setiawan (Petugas BMN)',
     fileDokumen: 'DO_ATK_Kertas_A4_signed.pdf',
     catatan: 'Restock kertas habis untuk persiapan pelatihan guru.'
-  },
-  {
-    id: 'TRM-260720-01',
-    tanggal: '2026-07-20T10:00:00Z',
-    barangId: 'BRG-006',
-    namaBarang: 'Air Mineral Cup Wahana 240ml',
-    jumlah: 20,
-    supplier: 'CV Indah Boga Catering',
-    petugas: 'Roni Setiawan (Petugas BMN)',
-    fileDokumen: 'Inv_Boga_Wahana_signed.pdf',
-    catatan: 'Pengadaan konsumsi rapat koordinasi dinas pendidikan kabupaten.'
   }
 ];
 
@@ -191,7 +294,7 @@ export const INITIAL_BARANG_KELUAR: BarangKeluar[] = [
   {
     id: 'TRK-260711-01',
     tanggal: '2026-07-11T13:30:00Z',
-    barangId: 'BRG-004',
+    barangId: '000002',
     namaBarang: 'Mouse Wireless Logitech M170',
     jumlah: 2,
     unitId: 'Subbagian Umum',
@@ -203,7 +306,7 @@ export const INITIAL_BARANG_KELUAR: BarangKeluar[] = [
   {
     id: 'TRK-260718-01',
     tanggal: '2026-07-18T14:20:00Z',
-    barangId: 'BRG-002',
+    barangId: '000003',
     namaBarang: 'Pulpen Standard AE7 Hitam',
     jumlah: 3,
     unitId: 'Fasilitasi Peningkatan Mutu (FPMP)',
@@ -211,30 +314,6 @@ export const INITIAL_BARANG_KELUAR: BarangKeluar[] = [
     keperluan: 'Kebutuhan menulis formulir penilaian peserta bimtek',
     statusPersetujuan: 'Disetujui',
     catatan: 'Serah terima di ruang FPMP.'
-  },
-  {
-    id: 'TRK-260719-01',
-    tanggal: '2026-07-19T16:30:00Z',
-    barangId: 'BRG-005',
-    namaBarang: 'Banner Roll X-Stand Sosialisasi Kurikulum Merdeka',
-    jumlah: 2,
-    unitId: 'Seksi Pemetaan & Supervisi',
-    petugas: 'Roni Setiawan (Petugas BMN)',
-    keperluan: 'Pemasangan display sosialisasi di lobi utama BPMP',
-    statusPersetujuan: 'Disetujui',
-    catatan: 'Dipasang sementara sampai tanggal 30 Juli.'
-  },
-  {
-    id: 'TRK-260720-02',
-    tanggal: '2026-07-20T09:00:00Z',
-    barangId: 'BRG-003',
-    namaBarang: 'Flashdisk SanDisk Ultra 64GB USB 3.0',
-    jumlah: 4,
-    unitId: 'Seksi Pemetaan & Supervisi',
-    petugas: 'Roni Setiawan (Petugas BMN)',
-    keperluan: 'Penyimpanan berkas instrumen akreditasi sekolah',
-    statusPersetujuan: 'Pending',
-    catatan: 'Menunggu persetujuan Kasubag Umum karena stok sisa sedikit (2 pcs).'
   }
 ];
 
@@ -243,7 +322,7 @@ export const INITIAL_RIWAYAT: Riwayat[] = [
     id: 'TRM-260710-01',
     tanggal: '2026-07-10T09:00:00Z',
     tipe: 'Masuk',
-    barangId: 'BRG-004',
+    barangId: '000002',
     namaBarang: 'Mouse Wireless Logitech M170',
     jumlah: 15,
     petugas: 'Roni Setiawan (Petugas BMN)',
@@ -253,64 +332,33 @@ export const INITIAL_RIWAYAT: Riwayat[] = [
     id: 'TRK-260711-01',
     tanggal: '2026-07-11T13:30:00Z',
     tipe: 'Keluar',
-    barangId: 'BRG-004',
+    barangId: '000002',
     namaBarang: 'Mouse Wireless Logitech M170',
     jumlah: 2,
     petugas: 'Roni Setiawan (Petugas BMN)',
     keterangan: 'Barang Keluar ke Unit Subbagian Umum'
   },
   {
-    id: 'TRM-260715-01',
-    tanggal: '2026-07-15T10:30:00Z',
+    id: 'TRM-260710-01',
+    tanggal: '2026-07-10T09:00:00Z',
     tipe: 'Masuk',
-    barangId: 'BRG-001',
+    barangId: '000002',
     namaBarang: 'Kertas HVS A4 80gr Sinar Dunia',
     jumlah: 30,
     petugas: 'Roni Setiawan (Petugas BMN)',
     keterangan: 'Barang Masuk dari Toko ATK Utama Jaya'
-  },
-  {
-    id: 'TRK-260718-01',
-    tanggal: '2026-07-18T14:20:00Z',
-    tipe: 'Keluar',
-    barangId: 'BRG-002',
-    namaBarang: 'Pulpen Standard AE7 Hitam',
-    jumlah: 3,
-    petugas: 'Roni Setiawan (Petugas BMN)',
-    keterangan: 'Barang Keluar ke Unit Fasilitasi Peningkatan Mutu (FPMP)'
-  },
-  {
-    id: 'TRK-260719-01',
-    tanggal: '2026-07-19T16:30:00Z',
-    tipe: 'Keluar',
-    barangId: 'BRG-005',
-    namaBarang: 'Banner Roll X-Stand Sosialisasi Kurikulum Merdeka',
-    jumlah: 2,
-    petugas: 'Roni Setiawan (Petugas BMN)',
-    keterangan: 'Barang Keluar ke Unit Seksi Pemetaan & Supervisi'
-  },
-  {
-    id: 'TRM-260720-01',
-    tanggal: '2026-07-20T10:00:00Z',
-    tipe: 'Masuk',
-    barangId: 'BRG-006',
-    namaBarang: 'Air Mineral Cup Wahana 240ml',
-    jumlah: 20,
-    petugas: 'Roni Setiawan (Petugas BMN)',
-    keterangan: 'Barang Masuk dari CV Indah Boga Catering'
   }
 ];
 
 export const INITIAL_AUDIT_LOG: AuditLog[] = [
   { id: 'LOG-001', tanggal: '2026-07-20T08:00:00Z', aktor: 'Roni Setiawan', role: 'Petugas BMN', aksi: 'Login', detail: 'Sesi login dimulai pada peranti desktop Google Chrome' },
-  { id: 'LOG-002', tanggal: '2026-07-20T09:00:00Z', aktor: 'Roni Setiawan', role: 'Petugas BMN', aksi: 'Transaksi Keluar', detail: 'Menginput pengajuan barang keluar Flashdisk SanDisk Ultra 64GB sebanyak 4 pcs' },
-  { id: 'LOG-003', tanggal: '2026-07-20T10:00:00Z', aktor: 'Roni Setiawan', role: 'Petugas BMN', aksi: 'Transaksi Masuk', detail: 'Berhasil memproses pencatatan barang masuk Air Mineral Cup sebanyak 20 Dus' },
+  { id: 'LOG-002', tanggal: '2026-07-20T09:00:00Z', aktor: 'Roni Setiawan', role: 'Petugas BMN', aksi: 'Transaksi Keluar', detail: 'Menginput pengajuan barang keluar Flashdisk SanDisk Ultra 64GB' },
+  { id: 'LOG-003', tanggal: '2026-07-20T10:00:00Z', aktor: 'Roni Setiawan', role: 'Petugas BMN', aksi: 'Transaksi Masuk', detail: 'Berhasil memproses pencatatan barang masuk' },
   { id: 'LOG-004', tanggal: '2026-07-20T10:15:00Z', aktor: 'Drs. H. Syahidin, M.Si.', role: 'Kepala Subbagian', aksi: 'Persetujuan', detail: 'Melihat rincian pengajuan barang keluar Flashdisk SanDisk Ultra 64GB' }
 ];
 
 export const INITIAL_NOTIFICATION: SystemNotification[] = [
-  { id: 'NOT-001', tipe: 'stok_habis', pesan: 'Stok barang "Banner Roll X-Stand Sosialisasi Kurikulum Merdeka" HABIS! Segera lakukan pengadaan.', tanggal: '2026-07-19T16:30:00Z', read: false, readByUsers: '', barangId: 'BRG-005' },
-  { id: 'NOT-002', tipe: 'stok_rendah', pesan: 'Stok barang "Flashdisk SanDisk Ultra 64GB USB 3.0" tersisa 2 Pcs (Stok minimum: 5).', tanggal: '2026-07-20T09:00:00Z', read: false, readByUsers: '', barangId: 'BRG-003' }
+  { id: 'NOT-001', tipe: 'stok_rendah', pesan: 'Stok barang "Flashdisk SanDisk Ultra 64GB USB 3.0" tersisa 2 Pcs (Stok minimum: 5).', tanggal: '2026-07-20T09:00:00Z', read: false, readByUsers: '', barangId: '000001' }
 ];
 
 export const DEFAULT_SETTINGS: Settings = {

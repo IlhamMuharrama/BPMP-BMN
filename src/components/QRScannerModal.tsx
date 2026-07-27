@@ -7,13 +7,14 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import jsQR from 'jsqr';
 import { Camera, X, AlertCircle, Check, RefreshCw, Image as ImageIcon, SwitchCamera, Sparkles, ScanLine } from 'lucide-react';
-import { Barang } from '../types';
+import { Barang, Kategori } from '../types';
 
 interface QRScannerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onScanSuccess: (barangId: string) => void;
+  onScanSuccess: (scannedCode: string, matchedItem?: Barang, matchedKategori?: Kategori) => void;
   barangList: Barang[];
+  kategoriList?: Kategori[];
 }
 
 interface CameraDevice {
@@ -25,7 +26,8 @@ export default function QRScannerModal({
   isOpen,
   onClose,
   onScanSuccess,
-  barangList = []
+  barangList = [],
+  kategoriList = []
 }: QRScannerModalProps) {
   const [cameraState, setCameraState] = useState<'idle' | 'scanning' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
@@ -46,7 +48,7 @@ export default function QRScannerModal({
     barangList.forEach(b => {
       if (!b) return;
 
-      const keysToIndex = [b.id, b.qrCodeUrl, b.nama, b.kategori, b.supplier, b.lokasiRak].filter(Boolean);
+      const keysToIndex = [b.id, b.kategoriId, b.nama, b.kategori, b.supplier, b.lokasiRak].filter(Boolean);
 
       keysToIndex.forEach(rawKey => {
         const str = String(rawKey).trim();
@@ -96,92 +98,40 @@ export default function QRScannerModal({
    * Ultra-Fast Multi-Format Parsing Engine
    * Accepts any decoded string format from 1D/2D QR/Barcodes
    */
-  const parseScannedText = (rawCode: string): Barang | null => {
-    if (!rawCode || typeof rawCode !== 'string') return null;
+  const parseScannedText = (rawCode: string): { item: Barang | null; kategori: Kategori | null } => {
+    if (!rawCode || typeof rawCode !== 'string') return { item: null, kategori: null };
     const text = rawCode.trim();
-    if (!text) return null;
+    if (!text) return { item: null, kategori: null };
 
-    // 1. O(1) Instant Fast Map Check (Exact match, Case-insensitive, Clean Alphanum, or Digits)
-    const instantMatch = barangFastMap.get(text) || barangFastMap.get(text.toLowerCase()) || barangFastMap.get(text.toUpperCase());
-    if (instantMatch) return instantMatch;
+    // 1. Check Kategori List Match
+    const matchedCategory = kategoriList.find(k =>
+      k.id.toLowerCase() === text.toLowerCase() ||
+      k.nama.toLowerCase() === text.toLowerCase() ||
+      (k.qrCodeUrl && k.qrCodeUrl.toLowerCase().includes(text.toLowerCase()))
+    );
 
-    const cleanRaw = text.toLowerCase().replace(/[^a-z0-9]/g, '');
-    if (cleanRaw) {
-      const cleanMatch = barangFastMap.get(cleanRaw);
-      if (cleanMatch) return cleanMatch;
-    }
+    // 2. Check Barang Fast Map
+    let matchedItem = barangFastMap.get(text) || barangFastMap.get(text.toLowerCase()) || barangFastMap.get(text.toUpperCase());
 
-    // 2. Direct match with b.qrCodeUrl or b.id or b.nama in array fallback
-    let matched = barangList.find(b => b.qrCodeUrl && (b.qrCodeUrl.trim() === text || b.qrCodeUrl.trim().toLowerCase() === text.toLowerCase()));
-    if (matched) return matched;
-
-    matched = barangList.find(b => String(b.id || '').trim().toLowerCase() === text.toLowerCase());
-    if (matched) return matched;
-
-    // 3. Check JSON structure (e.g. {"id":"BRG-001"})
-    try {
-      if (text.startsWith('{') && text.endsWith('}')) {
-        const parsed = JSON.parse(text);
-        const jsonVal = parsed.id || parsed.code || parsed.barangId || parsed.item_id || parsed.kodeBarang || parsed.nama || parsed.qrCodeUrl;
-        if (jsonVal && typeof jsonVal === 'string') {
-          const jsonMatch = parseScannedText(jsonVal);
-          if (jsonMatch) return jsonMatch;
-        }
-      }
-    } catch (e) {
-      // Ignore JSON parse errors
-    }
-
-    // 4. Extract query parameters (data=..., id=..., code=..., qr=...) or URL paths
-    if (text.includes('http://') || text.includes('https://') || text.includes('?')) {
-      try {
-        const urlObj = new URL(text);
-        const dataParam = urlObj.searchParams.get('data') || urlObj.searchParams.get('id') || urlObj.searchParams.get('code') || urlObj.searchParams.get('qr');
-        if (dataParam) {
-          const paramMatch = parseScannedText(decodeURIComponent(dataParam));
-          if (paramMatch) return paramMatch;
-        }
-        const segments = urlObj.pathname.split('/').filter(Boolean);
-        for (const seg of segments) {
-          const segMatch = parseScannedText(decodeURIComponent(seg));
-          if (segMatch) return segMatch;
-        }
-      } catch (e) {
-        // Fallthrough if not valid URL
+    if (!matchedItem) {
+      const cleanRaw = text.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (cleanRaw) {
+        matchedItem = barangFastMap.get(cleanRaw);
       }
     }
 
-    // 5. Regex "BRG-xxx" pattern (e.g., BRG-001, BRG001, BRG_001, BRG 001, BRG15)
-    const brgMatch = text.match(/BRG[-_\s]?(\d+)/i);
-    if (brgMatch) {
-      const numPart = brgMatch[1]; // e.g. "001" or "1"
-      const formattedId = `BRG-${numPart.padStart(3, '0')}`;
-      matched = barangList.find(b => String(b.id || '').toUpperCase() === formattedId.toUpperCase());
-      if (matched) return matched;
+    if (!matchedItem) {
+      matchedItem = barangList.find(b => String(b.id || '').trim().toLowerCase() === text.toLowerCase() || String(b.kategoriId || '').trim().toLowerCase() === text.toLowerCase());
     }
 
-    // 6. Digits-only match (e.g. barcode 15 or 015 or 8992775312345)
-    if (/^\d+$/.test(text)) {
-      matched = barangList.find(b => {
-        const bIdDigits = (b.id || '').match(/\d+/)?.[0];
-        const bQrDigits = (b.qrCodeUrl || '').match(/\d+/)?.[0];
-        return (bIdDigits && parseInt(bIdDigits, 10) === parseInt(text, 10)) ||
-               (bQrDigits && parseInt(bQrDigits, 10) === parseInt(text, 10)) ||
-               b.id === text ||
-               b.qrCodeUrl === text;
-      });
-      if (matched) return matched;
+    if (!matchedItem) {
+      // Direct digits match for item or category
+      if (/^\d+$/.test(text)) {
+        matchedItem = barangList.find(b => b.id === text || b.kategoriId === text);
+      }
     }
 
-    // 7. Item Name match (exact or substring)
-    const lowerText = text.toLowerCase();
-    matched = barangList.find(b => {
-      const lowerName = String(b.nama || '').toLowerCase();
-      return lowerName === lowerText || lowerText.includes(lowerName) || (lowerName.length >= 4 && lowerName.includes(lowerText));
-    });
-    if (matched) return matched;
-
-    return null;
+    return { item: matchedItem || null, kategori: matchedCategory || null };
   };
 
   // Handle successful match with lock to prevent duplicate concurrent triggers
@@ -189,10 +139,10 @@ export default function QRScannerModal({
     if (isHandlingScanRef.current) return;
     isHandlingScanRef.current = true;
 
-    const matched = parseScannedText(decodedText);
+    const { item, kategori } = parseScannedText(decodedText);
 
-    if (matched) {
-      setScannedItem(matched);
+    if (item || kategori) {
+      setScannedItem(item);
       setCameraState('success');
       setErrorMessage('');
       playSuccessSound();
@@ -200,13 +150,13 @@ export default function QRScannerModal({
       await stopScanner(activeScanner);
 
       setTimeout(() => {
-        onScanSuccess(matched.id);
+        onScanSuccess(decodedText, item || undefined, kategori || undefined);
         onClose();
         isHandlingScanRef.current = false;
       }, 500);
     } else {
       const snippet = decodedText.length > 40 ? decodedText.substring(0, 40) + '...' : decodedText;
-      setErrorMessage(`Kode "${snippet}" berhasil dibaca, namun tidak ditemukan di katalog barang BMN.`);
+      setErrorMessage(`Kode "${snippet}" berhasil dibaca, namun tidak ditemukan di sistem.`);
       setCameraState('error');
       setTimeout(() => {
         isHandlingScanRef.current = false;

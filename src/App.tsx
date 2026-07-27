@@ -483,17 +483,22 @@ const handler = setTimeout(async () => {
 
   // --- CATALOG CRUD CONTROLLERS ---
 
-  const handleAddBarang = (item: Omit<Barang, 'id' | 'qrCodeUrl' | 'createdAt' | 'updatedAt'>) => {
-    const newId = `BRG-${String(barangList.length + 1).padStart(3, '0')}`;
+  const handleAddBarang = (item: Omit<Barang, 'createdAt' | 'updatedAt'> & { id?: string }) => {
+    const cat = kategoriList.find(k => k.nama === item.kategori || k.id === item.kategoriId);
+    const catCode = cat ? cat.id : (item.kategoriId || '1010301001');
+
+    const sameCatItems = barangList.filter(b => b.kategoriId === catCode || b.kategori === item.kategori);
+    const newId = item.id || String(sameCatItems.length + 1).padStart(6, '0');
+
     const newBarang: Barang = {
       ...item,
       id: newId,
-      qrCodeUrl: `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${newId}`,
+      kategoriId: catCode,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
     setBarangList(prev => [...prev, newBarang]);
-    writeAuditLog('Tambah Barang', `Mendaftarkan barang baru ke katalog BMN: "${item.nama}" (${newId})`);
+    writeAuditLog('Tambah Barang', `Mendaftarkan barang baru ke katalog BMN: "${item.nama}" (${newId}) di Kategori ${item.kategori} (${catCode})`);
   };
 
   const handleEditBarang = (id: string, updated: Partial<Barang>) => {
@@ -506,9 +511,10 @@ const handler = setTimeout(async () => {
     writeAuditLog('Hapus Barang', `Menghapus item barang BMN dari katalog: ID ${id}`);
   };
 
-  const handleAddKategori = (kat: Omit<Kategori, 'id'>) => {
-    const newId = `KAT-${String(kategoriList.length + 1).padStart(3, '0')}`;
-    setKategoriList(prev => [...prev, { ...kat, id: newId }]);
+  const handleAddKategori = (kat: Omit<Kategori, 'id'> & { id?: string }) => {
+    const newId = kat.id || `1010301${String(kategoriList.length + 1).padStart(3, '0')}`;
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${newId}`;
+    setKategoriList(prev => [...prev, { ...kat, id: newId, qrCodeUrl }]);
     writeAuditLog('Tambah Kategori', `Mendaftarkan kategori baru: "${kat.nama}" (${newId})`);
   };
 
@@ -1186,6 +1192,7 @@ const handler = setTimeout(async () => {
               {activeTab === 'barang_masuk' && (
                 <TransaksiMasukView
                   barangList={barangList}
+                  kategoriList={kategoriList}
                   supplierList={supplierList}
                   transaksiList={barangMasukList}
                   onProcessTransaksi={handleProcessTransaksiMasuk}
@@ -1200,6 +1207,7 @@ const handler = setTimeout(async () => {
               {activeTab === 'barang_keluar' && (
                 <TransaksiKeluarView
                   barangList={barangList}
+                  kategoriList={kategoriList}
                   unitList={unitList}
                   transaksiList={barangKeluarList}
                   onProcessTransaksi={handleProcessTransaksiKeluar}

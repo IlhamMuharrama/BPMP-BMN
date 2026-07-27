@@ -11,20 +11,16 @@ import {
   Eye,
   Edit2,
   Trash2,
-  QrCode,
-  Download,
-  Printer,
-  History,
   X,
   PlusSquare,
   Sparkles,
   ChevronLeft,
   ChevronRight,
-  PackageCheck
+  PackageCheck,
+  FolderTree,
+  Tag
 } from 'lucide-react';
 import { Barang, Kategori, Supplier, Satuan } from '../types';
-import defaultLogo from '../assets/logo.png';
-import { QRCodeCanvas } from 'qrcode.react';
 import ImagePicker from './ImagePicker';
 
 interface BarangViewProps {
@@ -32,7 +28,7 @@ interface BarangViewProps {
   kategoriList: Kategori[];
   supplierList: Supplier[];
   satuanList: Satuan[];
-  onAddBarang: (b: Omit<Barang, 'id' | 'qrCodeUrl' | 'createdAt' | 'updatedAt'>) => void;
+  onAddBarang: (b: Omit<Barang, 'createdAt' | 'updatedAt'>) => void;
   onEditBarang: (id: string, b: Partial<Barang>) => void;
   onDeleteBarang: (id: string) => void;
   currentUserRole: string;
@@ -63,8 +59,10 @@ export default function BarangView({
 
   // Form states
   const [formData, setFormData] = useState({
-    nama: '',
+    id: '000001',
+    kategoriId: '1010301001',
     kategori: '',
+    nama: '',
     supplier: '',
     satuan: '',
     lokasiRak: '',
@@ -89,6 +87,7 @@ export default function BarangView({
     const matchesSearch =
       String(item.nama || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       String(item.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(item.kategoriId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       String(item.lokasiRak || '').toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesCategory = selectedCategory ? item.kategori === selectedCategory : true;
@@ -122,9 +121,17 @@ export default function BarangView({
   };
 
   const handleOpenAdd = () => {
+    const firstCat = kategoriList[0];
+    const firstCatId = firstCat ? firstCat.id : '1010301001';
+    const firstCatNama = firstCat ? firstCat.nama : 'ALAT TULIS';
+    const sameCatItems = barang.filter(b => b.kategoriId === firstCatId || b.kategori === firstCatNama);
+    const nextCode = String(sameCatItems.length + 1).padStart(6, '0');
+
     setFormData({
+      id: nextCode,
+      kategoriId: firstCatId,
+      kategori: firstCatNama,
       nama: '',
-      kategori: kategoriList[0]?.nama || '',
       supplier: supplierList[0]?.nama || '',
       satuan: satuanList[0]?.nama || 'Pcs',
       lokasiRak: 'Rak ATK - A1',
@@ -135,6 +142,19 @@ export default function BarangView({
       imageUrl: 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&q=80&w=200'
     });
     setShowAddModal(true);
+  };
+
+  const handleKategoriChangeInAdd = (catId: string) => {
+    const selected = kategoriList.find(k => k.id === catId);
+    if (!selected) return;
+    const sameCatItems = barang.filter(b => b.kategoriId === catId || b.kategori === selected.nama);
+    const nextCode = String(sameCatItems.length + 1).padStart(6, '0');
+    setFormData(prev => ({
+      ...prev,
+      kategoriId: selected.id,
+      kategori: selected.nama,
+      id: nextCode
+    }));
   };
 
   const handleAddSubmit = (e: React.FormEvent) => {
@@ -159,44 +179,6 @@ export default function BarangView({
   const handleOpenDetail = (item: Barang) => {
     setActiveItem(item);
     setShowDetailModal(true);
-  };
-
-  const handlePrintQR = (id: string, name: string) => {
-    const canvas = document.getElementById('qr-canvas-' + id) as HTMLCanvasElement;
-    const qrDataUrl = canvas ? canvas.toDataURL('image/png') : `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${id}`;
-
-    // qrUrl removed
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>Cetak QR Code - ${id}</title>
-            <style>
-              body { font-family: 'Inter', sans-serif; text-align: center; padding: 40px; color: #111827; }
-              .card { border: 2px solid #E5E7EB; border-radius: 16px; padding: 30px; display: inline-block; max-width: 320px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-              .logo { font-weight: 800; font-size: 14px; text-transform: uppercase; letter-spacing: 0.1em; color: #2563EB; margin-bottom: 20px; }
-              .qr { width: 220px; height: 220px; margin: 15px 0; }
-              .code { font-family: monospace; font-size: 16px; font-weight: bold; background: #F3F4F6; padding: 6px 12px; border-radius: 6px; display: inline-block; }
-              .name { font-size: 14px; font-weight: 600; margin-top: 15px; color: #4B5563; }
-              @media print { .no-print { display: none; } }
-            </style>
-          </head>
-          <body>
-            <div class="card">
-              <div class="logo">BPMP SUMATERA SELATAN</div>
-              <div class="code">${id}</div>
-              <br/>
-              <img src="${qrDataUrl}" class="qr" />
-              <div class="name">${name}</div>
-            </div>
-            <br/><br/>
-            <button onclick="window.print()" class="no-print" style="padding: 10px 20px; background: #2563EB; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">Cetak Sekarang</button>
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-    }
   };
 
   const getStockStatusBadge = (current: number, min: number) => {
@@ -316,9 +298,14 @@ export default function BarangView({
                       />
                     </td>
                     <td className="p-4">
-                      <span className="font-mono bg-slate-100 text-slate-800 px-2 py-0.5 rounded text-[11px] font-bold">
-                        {item.id}
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span className="font-mono bg-red-50 text-red-800 border border-red-200 px-2 py-0.5 rounded text-[10px] font-bold w-fit">
+                          Kat: {item.kategoriId}
+                        </span>
+                        <span className="font-mono bg-slate-100 text-slate-800 px-2 py-0.5 rounded text-[11px] font-bold w-fit">
+                          Item: {item.id}
+                        </span>
+                      </div>
                     </td>
                     <td className="p-4 max-w-[200px]">
                       <div className="font-bold text-gray-900 truncate" title={item.nama}>
@@ -451,51 +438,27 @@ export default function BarangView({
                 </div>
               </div>
 
-              {/* QR and print center */}
-              <div className="bg-slate-50 p-4 rounded-xl flex flex-col items-center text-center">
-                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-2">QR Code Inventaris</span>
-                <div className="bg-white p-2 rounded-lg border border-gray-200">
-                  <QRCodeCanvas 
-                    id={`qr-canvas-${activeItem.id}`}
-                    value={activeItem.id} 
-                    size={520} 
-                    level={"H"}
-                    style={{ width: '130px', height: '130px' }}
-                    imageSettings={{
-                      src: (!logoUrl || logoUrl.includes('upload.wikimedia.org')) ? defaultLogo : logoUrl,
-                      x: undefined,
-                      y: undefined,
-                      height: 140,
-                      width: 140,
-                      excavate: true,
-                    }}
-                  />
+              {/* Identification Badge Center */}
+              <div className="bg-slate-50 p-4 rounded-xl space-y-2 border border-slate-200">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-500 font-bold flex items-center gap-1">
+                    <FolderTree className="w-3.5 h-3.5 text-red-600" /> Kode Kategori:
+                  </span>
+                  <span className="font-mono font-bold bg-red-100 text-red-800 px-2.5 py-1 rounded-lg border border-red-200 text-xs">
+                    {activeItem.kategoriId || '1010301001'}
+                  </span>
                 </div>
-                <div className="flex gap-2 mt-4 w-full">
-                  <button
-                    onClick={() => handlePrintQR(activeItem.id, activeItem.nama)}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white hover:bg-slate-800 rounded-xl text-xs font-bold cursor-pointer"
-                  >
-                    <Printer className="w-3.5 h-3.5" /> Cetak QR
-                  </button>
-                  <a
-                    onClick={(e) => {
-                      e.preventDefault();
-                      const canvas = document.getElementById('qr-canvas-' + activeItem.id) as HTMLCanvasElement;
-                      if (canvas) {
-                        const url = canvas.toDataURL('image/png');
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `QR-${activeItem.id}.png`;
-                        a.click();
-                      }
-                    }}
-                    href="#"
-                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white hover:bg-blue-700 rounded-xl text-xs font-bold cursor-pointer text-center"
-                  >
-                    <Download className="w-3.5 h-3.5" /> Download QR
-                  </a>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-500 font-bold flex items-center gap-1">
+                    <Tag className="w-3.5 h-3.5 text-blue-600" /> Kode Barang Item:
+                  </span>
+                  <span className="font-mono font-bold bg-blue-100 text-blue-800 px-2.5 py-1 rounded-lg border border-blue-200 text-xs">
+                    {activeItem.id}
+                  </span>
                 </div>
+                <p className="text-[10px] text-gray-400 text-center italic pt-1 border-t border-slate-200">
+                  * Barcode & QR Code fisik dicetak per Kategori pada menu "Kategori Barang".
+                </p>
               </div>
 
               {/* Technical Specifications */}
@@ -564,18 +527,29 @@ export default function BarangView({
 
                 {/* Kategori */}
                 <div className="space-y-1">
-                  <label className="block text-gray-500">Kategori *</label>
+                  <label className="block text-gray-500">Kategori Barang *</label>
                   <select
-                    value={formData.kategori}
-                    onChange={e => setFormData({ ...formData, kategori: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                    value={formData.kategoriId}
+                    onChange={e => handleKategoriChangeInAdd(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-600 focus:outline-none font-medium"
                   >
                     {kategoriList.map(cat => (
-                      <option key={cat.id} value={cat.nama}>
-                        {cat.nama}
+                      <option key={cat.id} value={cat.id}>
+                        {cat.id} - {cat.nama}
                       </option>
                     ))}
                   </select>
+                </div>
+
+                {/* Auto Kode Barang */}
+                <div className="space-y-1">
+                  <label className="block text-gray-500">Kode Barang (Otomatis per Kategori)</label>
+                  <input
+                    type="text"
+                    disabled
+                    value={formData.id}
+                    className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl font-mono font-bold text-blue-700 cursor-not-allowed"
+                  />
                 </div>
 
                 {/* Supplier */}

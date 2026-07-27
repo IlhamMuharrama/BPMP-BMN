@@ -4,12 +4,13 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { ArrowUpRight, Check, X, ShieldAlert, Clock, AlertTriangle, Building, FileSpreadsheet, QrCode } from 'lucide-react';
-import { Barang, Unit, BarangKeluar, Pegawai } from '../types';
+import { ArrowUpRight, Check, X, ShieldAlert, Clock, AlertTriangle, Building, FileSpreadsheet, QrCode, FolderTree, Package } from 'lucide-react';
+import { Barang, Kategori, Unit, BarangKeluar, Pegawai } from '../types';
 import QRScannerModal from './QRScannerModal';
 
 interface TransaksiKeluarViewProps {
   barangList: Barang[];
+  kategoriList: Kategori[];
   unitList: Unit[];
   transaksiList: BarangKeluar[];
   onProcessTransaksi: (t: Omit<BarangKeluar, 'id' | 'tanggal' | 'statusPersetujuan'>) => void;
@@ -22,6 +23,7 @@ interface TransaksiKeluarViewProps {
 
 export default function TransaksiKeluarView({
   barangList,
+  kategoriList = [],
   unitList,
   transaksiList,
   onProcessTransaksi,
@@ -31,18 +33,50 @@ export default function TransaksiKeluarView({
   clearQuickAdd,
   pegawaiList
 }: TransaksiKeluarViewProps) {
-  // Form State
-  const [selectedBarangId, setSelectedBarangId] = useState(quickAddBarangId || (barangList[0]?.id || ''));
+  // Category & Item State
+  const [selectedKategoriId, setSelectedKategoriId] = useState<string>(() => {
+    if (quickAddBarangId) {
+      const b = barangList.find(x => x.id === quickAddBarangId);
+      if (b) return b.kategoriId || kategoriList.find(k => k.nama === b.kategori)?.id || (kategoriList[0]?.id || '');
+    }
+    return kategoriList[0]?.id || '';
+  });
+
+  const selectedCategoryObj = kategoriList.find(k => k.id === selectedKategoriId || k.nama === selectedKategoriId);
+
+  // Filter items by category
+  const filteredBarangList = barangList.filter(b => {
+    if (selectedKategoriId) {
+      return b.kategoriId === selectedKategoriId || (selectedCategoryObj && b.kategori === selectedCategoryObj.nama);
+    }
+    return true;
+  });
+
+  const [selectedBarangId, setSelectedBarangId] = useState<string>(() => {
+    if (quickAddBarangId) return quickAddBarangId;
+    return filteredBarangList[0]?.id || '';
+  });
+
   const [jumlah, setJumlah] = useState<number>(1);
   const [selectedUnitId, setSelectedUnitId] = useState(unitList[0]?.nama || '');
-  const [petugas, setPetugas] = useState(() => {
-    return pegawaiList?.[0]?.nama || 'Roni Setiawan';
-  });
+  const [petugas, setPetugas] = useState(() => pegawaiList?.[0]?.nama || 'Roni Setiawan');
   const [keperluan, setKeperluan] = useState('');
   const [catatan, setCatatan] = useState('');
   const [isScannerOpen, setIsScannerOpen] = useState(false);
-
   const [validationError, setValidationError] = useState('');
+
+  // Handle category selection change
+  const handleKategoriChange = (katId: string) => {
+    setSelectedKategoriId(katId);
+    const cat = kategoriList.find(k => k.id === katId || k.nama === katId);
+    const items = barangList.filter(b => b.kategoriId === katId || (cat && b.kategori === cat.nama));
+    if (items.length > 0) {
+      setSelectedBarangId(items[0].id);
+    } else {
+      setSelectedBarangId('');
+    }
+    setValidationError('');
+  };
 
   // Sync petugas when pegawaiList loads
   useEffect(() => {
@@ -209,10 +243,17 @@ export default function TransaksiKeluarView({
         <QRScannerModal
           isOpen={isScannerOpen}
           onClose={() => setIsScannerOpen(false)}
-          onScanSuccess={(bId) => {
-            handleBarangChange(bId);
+          onScanSuccess={(code, item, category) => {
+            if (category) {
+              handleKategoriChange(category.id);
+            } else if (item) {
+              const cat = kategoriList.find(k => k.nama === item.kategori || k.id === item.kategoriId);
+              if (cat) setSelectedKategoriId(cat.id);
+              handleBarangChange(item.id);
+            }
           }}
           barangList={barangList}
+          kategoriList={kategoriList}
         />
 
         {/* Form panel */}
@@ -222,7 +263,7 @@ export default function TransaksiKeluarView({
               <ArrowUpRight className="w-4.5 h-4.5 text-red-500 bg-red-50 p-0.5 rounded" />
               Input Pengeluaran Barang Keluar
             </h3>
-            <p className="text-[10px] text-gray-400 mt-1 uppercase font-bold tracking-wider">Mendistribusikan Barang</p>
+            <p className="text-[10px] text-gray-400 mt-1 uppercase font-bold tracking-wider">Pilih Kategori Dulu → Lalu Pilih Barang</p>
           </div>
 
           {isReadOnly ? (
@@ -231,31 +272,61 @@ export default function TransaksiKeluarView({
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4 text-xs font-medium text-gray-700">
-              {/* Item select */}
+              {/* STEP 1: KATEGORI BARANG */}
               <div className="space-y-1">
-                <label className="block text-gray-500">Pilih Item Barang *</label>
+                <label className="block text-gray-500 font-bold flex items-center gap-1">
+                  <FolderTree className="w-3.5 h-3.5 text-red-600" />
+                  1. Pilih Kategori Barang *
+                </label>
                 <div className="flex gap-2">
                   <select
                     required
-                    value={selectedBarangId}
-                    onChange={e => handleBarangChange(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-600 focus:outline-none min-w-0"
+                    value={selectedKategoriId}
+                    onChange={e => handleKategoriChange(e.target.value)}
+                    className="flex-1 px-3 py-2 border border-red-200 bg-red-50/20 rounded-xl focus:ring-2 focus:ring-red-600 focus:outline-none min-w-0 font-medium text-gray-900"
                   >
-                    {barangList.map(b => (
-                      <option key={b.id} value={b.id} disabled={b.stokSekarang === 0}>
-                        {b.id} - {b.nama} (Stok: {b.stokSekarang} {b.satuan}) {b.stokSekarang === 0 ? '[KOSONG]' : ''}
+                    {kategoriList.map(k => (
+                      <option key={k.id} value={k.id}>
+                        {k.id} - {k.nama}
                       </option>
                     ))}
                   </select>
                   <button
                     type="button"
                     onClick={() => setIsScannerOpen(true)}
-                    className="flex-shrink-0 px-3 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-[#2563EB] font-bold rounded-xl flex items-center gap-1 cursor-pointer transition-colors"
+                    className="flex-shrink-0 px-3 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl flex items-center gap-1 cursor-pointer transition-colors shadow-xs"
+                    title="Pindai Barcode Kategori"
                   >
                     <QrCode className="w-4 h-4" />
                     <span className="hidden sm:inline">Pindai QR</span>
                   </button>
                 </div>
+              </div>
+
+              {/* STEP 2: ITEM BARANG (FILTERED BY CATEGORY) */}
+              <div className="space-y-1">
+                <label className="block text-gray-500 font-bold flex items-center gap-1">
+                  <Package className="w-3.5 h-3.5 text-red-600" />
+                  2. Pilih Item Barang Dalam Kategori *
+                </label>
+                {filteredBarangList.length === 0 ? (
+                  <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-xs font-medium">
+                    Belum ada item barang terdaftar di kategori ini.
+                  </div>
+                ) : (
+                  <select
+                    required
+                    value={selectedBarangId}
+                    onChange={e => handleBarangChange(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-600 focus:outline-none font-medium text-gray-900"
+                  >
+                    {filteredBarangList.map(b => (
+                      <option key={b.id} value={b.id} disabled={b.stokSekarang === 0}>
+                        [{b.id}] {b.nama} (Stok: {b.stokSekarang} {b.satuan}) {b.stokSekarang === 0 ? '[KOSONG]' : ''}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               {/* Specs display and stock warnings */}

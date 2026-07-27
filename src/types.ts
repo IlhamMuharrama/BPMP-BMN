@@ -4,13 +4,13 @@
  */
 
 export interface Barang {
-  id: string; // Kode Barang
+  id: string; // Kode Barang (e.g. 000001, 000002) per kategori
+  kategoriId: string; // Kode Kategori (e.g. 1010301001)
+  kategori: string; // Nama Kategori
   nama: string;
-  kategori: string;
   supplier: string;
   satuan: string;
   lokasiRak: string;
-  qrCodeUrl: string;
   stokSekarang: number;
   stokMin: number;
   stokMaks: number;
@@ -21,9 +21,10 @@ export interface Barang {
 }
 
 export interface Kategori {
-  id: string;
+  id: string; // Kode Kategori (e.g. 1010301001)
   nama: string;
   deskripsi: string;
+  qrCodeUrl?: string; // Barcode / QR Code for category
 }
 
 export interface Supplier {
