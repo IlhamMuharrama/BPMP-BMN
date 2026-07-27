@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useState, useRef } from 'react';
-import { Html5Qrcode } from 'html5-qrcode';
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import jsQR from 'jsqr';
 import { Camera, X, AlertCircle, Check, RefreshCw, Image as ImageIcon, SwitchCamera, Sparkles, ScanLine } from 'lucide-react';
 import { Barang } from '../types';
@@ -45,31 +45,31 @@ export default function QRScannerModal({
     const map = new Map<string, Barang>();
     barangList.forEach(b => {
       if (!b) return;
-      if (b.id) {
-        const rawId = String(b.id).trim();
-        map.set(rawId, b);
-        map.set(rawId.toLowerCase(), b);
-        map.set(rawId.toUpperCase(), b);
-        
-        // Clean alphanumeric version (e.g. BRG-001 -> brg001)
-        const cleanId = rawId.toLowerCase().replace(/[^a-z0-9]/g, '');
-        if (cleanId) map.set(cleanId, b);
 
-        // Digits-only version (e.g. BRG-001 -> 001)
-        const digits = rawId.match(/\d+/);
+      const keysToIndex = [b.id, b.qrCodeUrl, b.nama, b.kategori, b.supplier, b.lokasiRak].filter(Boolean);
+
+      keysToIndex.forEach(rawKey => {
+        const str = String(rawKey).trim();
+        if (!str) return;
+
+        map.set(str, b);
+        map.set(str.toLowerCase(), b);
+        map.set(str.toUpperCase(), b);
+
+        // Clean alphanumeric version (e.g. "BRG-001" -> "brg001")
+        const clean = str.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (clean) map.set(clean, b);
+
+        // Digits-only version (e.g. "BRG-015" -> "015", "15")
+        const digits = str.match(/\d+/);
         if (digits) {
           map.set(digits[0], b);
           map.set(String(parseInt(digits[0], 10)), b);
+          const padded = `brg${digits[0].padStart(3, '0')}`;
+          map.set(padded, b);
+          map.set(`brg-${digits[0].padStart(3, '0')}`, b);
         }
-      }
-      if (b.qrCodeUrl) {
-        const url = String(b.qrCodeUrl).trim();
-        map.set(url, b);
-        map.set(url.toLowerCase(), b);
-      }
-      if (b.nama) {
-        map.set(String(b.nama).trim().toLowerCase(), b);
-      }
+      });
     });
     return map;
   }, [barangList]);
@@ -111,8 +111,8 @@ export default function QRScannerModal({
       if (cleanMatch) return cleanMatch;
     }
 
-    // 2. Direct match with b.qrCodeUrl or b.id in array fallback
-    let matched = barangList.find(b => b.qrCodeUrl && b.qrCodeUrl.trim() === text);
+    // 2. Direct match with b.qrCodeUrl or b.id or b.nama in array fallback
+    let matched = barangList.find(b => b.qrCodeUrl && (b.qrCodeUrl.trim() === text || b.qrCodeUrl.trim().toLowerCase() === text.toLowerCase()));
     if (matched) return matched;
 
     matched = barangList.find(b => String(b.id || '').trim().toLowerCase() === text.toLowerCase());
@@ -122,7 +122,7 @@ export default function QRScannerModal({
     try {
       if (text.startsWith('{') && text.endsWith('}')) {
         const parsed = JSON.parse(text);
-        const jsonVal = parsed.id || parsed.code || parsed.barangId || parsed.item_id || parsed.kodeBarang || parsed.nama;
+        const jsonVal = parsed.id || parsed.code || parsed.barangId || parsed.item_id || parsed.kodeBarang || parsed.nama || parsed.qrCodeUrl;
         if (jsonVal && typeof jsonVal === 'string') {
           const jsonMatch = parseScannedText(jsonVal);
           if (jsonMatch) return jsonMatch;
@@ -151,7 +151,7 @@ export default function QRScannerModal({
       }
     }
 
-    // 5. Regex "BRG-xxx" pattern (e.g., BRG-001, BRG001, BRG_001, BRG 001)
+    // 5. Regex "BRG-xxx" pattern (e.g., BRG-001, BRG001, BRG_001, BRG 001, BRG15)
     const brgMatch = text.match(/BRG[-_\s]?(\d+)/i);
     if (brgMatch) {
       const numPart = brgMatch[1]; // e.g. "001" or "1"
@@ -160,7 +160,20 @@ export default function QRScannerModal({
       if (matched) return matched;
     }
 
-    // 6. Item Name match (exact or substring)
+    // 6. Digits-only match (e.g. barcode 15 or 015 or 8992775312345)
+    if (/^\d+$/.test(text)) {
+      matched = barangList.find(b => {
+        const bIdDigits = (b.id || '').match(/\d+/)?.[0];
+        const bQrDigits = (b.qrCodeUrl || '').match(/\d+/)?.[0];
+        return (bIdDigits && parseInt(bIdDigits, 10) === parseInt(text, 10)) ||
+               (bQrDigits && parseInt(bQrDigits, 10) === parseInt(text, 10)) ||
+               b.id === text ||
+               b.qrCodeUrl === text;
+      });
+      if (matched) return matched;
+    }
+
+    // 7. Item Name match (exact or substring)
     const lowerText = text.toLowerCase();
     matched = barangList.find(b => {
       const lowerName = String(b.nama || '').toLowerCase();
@@ -263,11 +276,25 @@ export default function QRScannerModal({
           fps: 25, // Increased frame rate for fast responsiveness
           qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
             const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-            const size = Math.floor(minEdge * 0.90); // 90% wide scanning zone
+            const size = Math.floor(minEdge * 0.95); // 95% wide scanning zone
             return { width: Math.max(size, 200), height: Math.max(size, 200) };
           },
           aspectRatio: 1.0,
           disableFlip: false,
+          formatsToSupport: [
+            Html5QrcodeSupportedFormats.QR_CODE,
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.CODE_93,
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.EAN_8,
+            Html5QrcodeSupportedFormats.UPC_A,
+            Html5QrcodeSupportedFormats.UPC_E,
+            Html5QrcodeSupportedFormats.DATA_MATRIX,
+            Html5QrcodeSupportedFormats.ITF,
+            Html5QrcodeSupportedFormats.AZTEC,
+            Html5QrcodeSupportedFormats.PDF_417
+          ],
           experimentalFeatures: {
             useBarCodeDetectorIfSupported: true
           }
@@ -313,130 +340,147 @@ export default function QRScannerModal({
   };
 
   /**
-   * Multi-Engine Image File Decoder
-   * Engine 1: Native BarcodeDetector (QR + 1D Barcodes: Code128, EAN13, etc.)
-   * Engine 2: Multi-Pass jsQR (Normal, Contrast Binarization, Scaled)
-   * Engine 3: Html5Qrcode scanFile
+   * Non-Blocking, Ultra-Fast Downscaled Image File Decoder
+   * Prevents browser tab freezing/hanging when uploading high-res mobile photos
    */
   const processImageFile = async (file: File) => {
     if (!file) return;
+    
+    // Stop live stream to free CPU/Memory before processing heavy photo
+    await stopScanner();
+    
     setIsProcessingFile(true);
     setErrorMessage('');
 
+    // Yield control to let React render the loading overlay
+    await new Promise(r => setTimeout(r, 80));
+
     try {
-      // --- ENGINE 1: Native Web BarcodeDetector (if supported by browser/Android) ---
+      // 1. Create Image element and downscale giant mobile photo
+      const imgDataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target?.result as string || '');
+        reader.onerror = e => reject(e);
+        reader.readAsDataURL(file);
+      });
+
+      if (!imgDataUrl) throw new Error("Gagal membaca berkas gambar.");
+
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = reject;
+        image.src = imgDataUrl;
+      });
+
+      // Downscale image to max 900px to ensure fast decoding without freezing CPU
+      const maxDim = 900;
+      let targetW = img.width;
+      let targetH = img.height;
+      if (targetW > maxDim || targetH > maxDim) {
+        if (targetW > targetH) {
+          targetH = Math.round((targetH * maxDim) / targetW);
+          targetW = maxDim;
+        } else {
+          targetW = Math.round((targetW * maxDim) / targetH);
+          targetH = maxDim;
+        }
+      }
+
+      // Render to downscaled offscreen canvas
+      const canvas = document.createElement('canvas');
+      canvas.width = targetW;
+      canvas.height = targetH;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error("Gagal menginisialisasi canvas.");
+      ctx.drawImage(img, 0, 0, targetW, targetH);
+
+      let foundCode: string | null = null;
+
+      // ENGINE 1: Native BarcodeDetector on downscaled image (Fastest ~5ms)
       if ('BarcodeDetector' in window) {
         try {
           const detector = new (window as any).BarcodeDetector({
             formats: ['qr_code', 'code_128', 'code_39', 'code_93', 'ean_13', 'ean_8', 'upc_a', 'upc_e', 'data_matrix', 'aztec', 'pdf417']
           });
-          const imgBitmap = await createImageBitmap(file);
-          const detected = await detector.detect(imgBitmap);
+          const detected = await detector.detect(canvas);
           if (detected && detected.length > 0 && detected[0].rawValue) {
-            setIsProcessingFile(false);
-            handleScannedCode(detected[0].rawValue);
-            return;
+            foundCode = detected[0].rawValue;
           }
-        } catch (nativeErr) {
-          console.log("Native BarcodeDetector pass skipped:", nativeErr);
+        } catch (e) {
+          console.log("Native BarcodeDetector skipped:", e);
         }
       }
 
-      // --- ENGINE 2: Multi-Pass jsQR Canvas Decoder ---
-      const jsQrResult = await new Promise<string | null>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const img = new Image();
-          img.onload = () => {
-            const processCanvas = (targetWidth: number, targetHeight: number, applyBinarize = false) => {
-              const canvas = document.createElement('canvas');
-              canvas.width = targetWidth;
-              canvas.height = targetHeight;
-              const ctx = canvas.getContext('2d');
-              if (!ctx) return null;
+      // ENGINE 2: Fast jsQR on downscaled canvas
+      if (!foundCode) {
+        const imgData = ctx.getImageData(0, 0, targetW, targetH);
+        
+        // Pass 2A: Standard
+        const jsRes = jsQR(imgData.data, targetW, targetH, { inversionAttempts: 'attemptBoth' });
+        if (jsRes && jsRes.data) {
+          foundCode = jsRes.data;
+        }
 
-              ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
-              const imgData = ctx.getImageData(0, 0, targetWidth, targetHeight);
-
-              // Apply contrast binarization filter if requested
-              if (applyBinarize) {
-                const data = imgData.data;
-                for (let i = 0; i < data.length; i += 4) {
-                  const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-                  const val = avg > 128 ? 255 : 0;
-                  data[i] = val;
-                  data[i + 1] = val;
-                  data[i + 2] = val;
-                }
-              }
-
-              const res = jsQR(imgData.data, imgData.width, imgData.height, {
-                inversionAttempts: 'attemptBoth'
-              });
-              return res ? res.data : null;
-            };
-
-            // Pass 2A: Standard scaled image (max 1000px)
-            const maxDim = 1000;
-            let w = img.width;
-            let h = img.height;
-            if (w > maxDim || h > maxDim) {
-              if (w > h) {
-                h = Math.round((h * maxDim) / w);
-                w = maxDim;
-              } else {
-                w = Math.round((w * maxDim) / h);
-                h = maxDim;
-              }
-            }
-
-            let code = processCanvas(w, h, false);
-            if (code) return resolve(code);
-
-            // Pass 2B: High Contrast Binarize
-            code = processCanvas(w, h, true);
-            if (code) return resolve(code);
-
-            // Pass 2C: Full Resolution original image
-            if (img.width !== w || img.height !== h) {
-              code = processCanvas(img.width, img.height, false);
-              if (code) return resolve(code);
-            }
-
-            resolve(null);
-          };
-          img.onerror = () => resolve(null);
-          img.src = e.target?.result as string;
-        };
-        reader.onerror = () => resolve(null);
-        reader.readAsDataURL(file);
-      });
-
-      if (jsQrResult) {
-        setIsProcessingFile(false);
-        handleScannedCode(jsQrResult);
-        return;
+        // Pass 2B: High contrast binarized if standard pass missed
+        if (!foundCode) {
+          const binarizedData = ctx.createImageData(targetW, targetH);
+          for (let i = 0; i < imgData.data.length; i += 4) {
+            const avg = (imgData.data[i] + imgData.data[i + 1] + imgData.data[i + 2]) / 3;
+            const val = avg > 128 ? 255 : 0;
+            binarizedData.data[i] = val;
+            binarizedData.data[i + 1] = val;
+            binarizedData.data[i + 2] = val;
+            binarizedData.data[i + 3] = 255;
+          }
+          const jsBinarizedRes = jsQR(binarizedData.data, targetW, targetH, { inversionAttempts: 'attemptBoth' });
+          if (jsBinarizedRes && jsBinarizedRes.data) {
+            foundCode = jsBinarizedRes.data;
+          }
+        }
       }
 
-      // --- ENGINE 3: Html5Qrcode.scanFile ---
-      let instance = scannerInstance;
-      if (!instance) {
-        instance = new Html5Qrcode(qrId);
-        setScannerInstance(instance);
+      // ENGINE 3: Html5Qrcode.scanFile on downscaled blob with 3s safety timeout
+      if (!foundCode) {
+        const blob = await new Promise<Blob | null>(res => canvas.toBlob(res, 'image/jpeg', 0.85));
+        if (blob) {
+          const scaledFile = new File([blob], 'scaled_scan.jpg', { type: 'image/jpeg' });
+          const tempEngine = new Html5Qrcode("qr-reader-element-static-file");
+          
+          try {
+            const scanPromise = tempEngine.scanFile(scaledFile, false);
+            const timeoutPromise = new Promise<null>((_, reject) => setTimeout(() => reject(new Error("Timeout")), 2500));
+            const scanRes = await Promise.race([scanPromise, timeoutPromise]);
+            if (scanRes) foundCode = scanRes;
+          } catch (e) {
+            // Ignore scanFile error
+          } finally {
+            try { await tempEngine.clear(); } catch (e) {}
+          }
+        }
       }
-      const scanFileResult = await instance.scanFile(file, false);
+
       setIsProcessingFile(false);
 
-      if (scanFileResult) {
-        handleScannedCode(scanFileResult, instance);
+      if (foundCode) {
+        handleScannedCode(foundCode);
       } else {
         setCameraState('error');
-        setErrorMessage("QR Code / Barcode tidak terdeteksi dari foto ini. Pastikan posisi gambar cukup terang & tidak buram.");
+        setErrorMessage("QR Code / Barcode tidak terdeteksi dari foto ini. Pastikan posisi gambar cukup terang & barcode terlihat jelas.");
+        // Restart live camera after showing error
+        setTimeout(() => {
+          startScanner();
+        }, 2000);
       }
+
     } catch (err: any) {
+      console.error("Image process error:", err);
       setIsProcessingFile(false);
       setCameraState('error');
-      setErrorMessage("Tidak dapat memproses berkas foto. Pastikan posisi gambar tegak & QR Code / Barcode terlihat jelas.");
+      setErrorMessage("Tidak dapat memproses foto ini. Silakan coba memfoto kembali dengan pencahayaan yang cukup.");
+      setTimeout(() => {
+        startScanner();
+      }, 2000);
     }
   };
 
@@ -485,6 +529,7 @@ export default function QRScannerModal({
             
             {/* The html5-qrcode element MUST always exist in DOM */}
             <div id={qrId} className={`w-full h-full ${cameraState !== 'scanning' ? 'hidden' : 'block'}`} />
+            <div id="qr-reader-element-static-file" className="hidden" />
 
             {cameraState === 'scanning' && (
               <>
