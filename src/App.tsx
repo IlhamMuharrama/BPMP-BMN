@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import Papa from 'papaparse';
 import { ShieldAlert, X, RefreshCw, CheckCircle2, Database } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
@@ -495,6 +496,81 @@ const handler = setTimeout(async () => {
   };
 
   // --- CATALOG CRUD CONTROLLERS ---
+
+  const handleImportCsv = (file: File) => {
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        const data = results.data as any[];
+        if (!data || data.length === 0) return;
+
+        setBarangList(prev => {
+          const newBarangList = [...prev];
+          
+          data.forEach(row => {
+            const rawId = row.id;
+            const kategoriId = row.kategoriId || '1010301001';
+            const kategori = row.kategori || 'Kategori Default';
+            const nama = row.nama || 'Barang Tanpa Nama';
+            
+            // Format ID jika belum digabungkan
+            const newId = rawId && rawId.includes('-') ? rawId : `${kategoriId}-${rawId}`;
+            
+            // Cek apakah ID sudah ada
+            const existingIndex = newBarangList.findIndex(b => b.id === newId);
+            const newItem: Barang = {
+              id: newId,
+              kategoriId,
+              kategori,
+              nama,
+              supplier: row.supplier || 'PT Internal',
+              satuan: row.satuan || 'Buah',
+              lokasiRak: row.lokasiRak || 'Rak A',
+              stokSekarang: Number(row.stokSekarang) || 0,
+              stokMin: Number(row.stokMin) || 0,
+              stokMaks: Number(row.stokMaks) || 100,
+              deskripsi: row.deskripsi || '',
+              imageUrl: row.imageUrl || 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&q=80&w=200',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            };
+
+            if (existingIndex > -1) {
+              newBarangList[existingIndex] = { ...newBarangList[existingIndex], ...newItem, updatedAt: new Date().toISOString() };
+            } else {
+              newBarangList.push(newItem);
+            }
+          });
+          
+          writeAuditLog('Import CSV', `Mengimpor ${data.length} barang dari file ${file.name}`);
+          return newBarangList;
+        });
+
+        // Tambahkan Kategori jika belum ada
+        setKategoriList(prev => {
+          const newCatList = [...prev];
+          data.forEach(row => {
+            const kategoriId = row.kategoriId;
+            const kategori = row.kategori;
+            if (kategoriId && kategori && !newCatList.some(k => k.id === kategoriId)) {
+              newCatList.push({
+                id: kategoriId,
+                nama: kategori,
+                deskripsi: `Kategori ${kategori} hasil import`,
+                qrCodeUrl: `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${kategoriId}`
+              });
+            }
+          });
+          return newCatList;
+        });
+      },
+      error: (err) => {
+        console.error("Gagal parse CSV:", err);
+        setSyncError(`Gagal parse CSV: ${err.message}`);
+      }
+    });
+  };
 
   const handleAddBarang = (item: Omit<Barang, 'createdAt' | 'updatedAt'> & { id?: string }) => {
     const cat = kategoriList.find(k => k.nama === item.kategori || k.id === item.kategoriId);
@@ -1158,6 +1234,7 @@ const handler = setTimeout(async () => {
                   onAddBarang={handleAddBarang}
                   onEditBarang={handleEditBarang}
                   onDeleteBarang={handleDeleteBarang}
+                  onImportCsv={handleImportCsv}
                   currentUserRole={currentRole}
                   logoUrl={settings?.logoUrl}
                 />
