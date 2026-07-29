@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, FileText, ArrowDownLeft, Upload, FileUp, AlertCircle, Sparkles, QrCode, Download, FolderTree, Package } from 'lucide-react';
+import { Search, X, PlusCircle, FileText, ArrowDownLeft, Upload, FileUp, AlertCircle, Sparkles, QrCode, Download, FolderTree, Package } from 'lucide-react';
 import { Barang, Kategori, Supplier, BarangMasuk, Pegawai } from '../types';
 import QRScannerModal from './QRScannerModal';
 

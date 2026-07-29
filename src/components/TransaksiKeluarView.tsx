@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { ArrowUpRight, Check, X, ShieldAlert, Clock, AlertTriangle, Building, FileSpreadsheet, QrCode, FolderTree, Package } from 'lucide-react';
+import { Search, ArrowUpRight, Check, X, ShieldAlert, Clock, AlertTriangle, Building, FileSpreadsheet, QrCode, FolderTree, Package } from 'lucide-react';
 import { Barang, Kategori, Unit, BarangKeluar, Pegawai } from '../types';
 import QRScannerModal from './QRScannerModal';
 
