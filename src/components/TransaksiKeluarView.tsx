@@ -63,6 +63,7 @@ export default function TransaksiKeluarView({
   const [keperluan, setKeperluan] = useState('');
   const [catatan, setCatatan] = useState('');
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const [validationError, setValidationError] = useState('');
 
   // Handle category selection change
@@ -309,9 +310,32 @@ export default function TransaksiKeluarView({
                   <Package className="w-3.5 h-3.5 text-red-600" />
                   2. Pilih Item Barang Dalam Kategori *
                 </label>
+
+                <div className="relative">
+                  <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Cari nama / ID barang..."
+                    value={searchTerm}
+                    onChange={e => {
+                      setSearchTerm(e.target.value);
+                      const newFiltered = barangList.filter(b => {
+                        const cat = kategoriList.find(k => k.id === selectedKategoriId);
+                        const matchesCategory = b.kategoriId === selectedKategoriId || b.kategori === cat?.nama;
+                        const term = e.target.value.toLowerCase();
+                        return matchesCategory && ((b.nama || '').toLowerCase().includes(term) || (b.id || '').toLowerCase().includes(term));
+                      });
+                      if (newFiltered.length > 0 && !newFiltered.find(x => x.id === selectedBarangId)) {
+                        setSelectedBarangId(newFiltered[0].id);
+                      }
+                    }}
+                    className="w-full pl-9 pr-3 py-2 mb-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-600 focus:outline-none font-medium text-gray-900"
+                  />
+                </div>
+
                 {filteredBarangList.length === 0 ? (
                   <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-xs font-medium">
-                    Belum ada item barang terdaftar di kategori ini.
+                    {searchTerm ? 'Barang tidak ditemukan untuk pencarian ini.' : 'Belum ada item barang terdaftar di kategori ini.'}
                   </div>
                 ) : (
                   <select
@@ -319,6 +343,7 @@ export default function TransaksiKeluarView({
                     value={selectedBarangId}
                     onChange={e => handleBarangChange(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-600 focus:outline-none font-medium text-gray-900"
+                    size={searchTerm ? 4 : 1}
                   >
                     {filteredBarangList.map((b, idx) => (
                       <option key={`${b.id}-${b.kategoriId}-${idx}`} value={b.id} disabled={b.stokSekarang === 0}>
