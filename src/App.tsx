@@ -501,7 +501,17 @@ const handler = setTimeout(async () => {
     const catCode = cat ? cat.id : (item.kategoriId || '1010301001');
 
     const sameCatItems = barangList.filter(b => b.kategoriId === catCode || b.kategori === item.kategori);
-    const sequence = String(sameCatItems.length + 1).padStart(6, '0');
+    
+    let maxSequence = 0;
+    sameCatItems.forEach(b => {
+      const parts = b.id.split('-');
+      const seqStr = parts.length > 1 ? parts[1] : b.id;
+      const seq = parseInt(seqStr, 10);
+      if (!isNaN(seq) && seq > maxSequence) {
+        maxSequence = seq;
+      }
+    });
+    const sequence = String(maxSequence + 1).padStart(6, '0');
     // Jika ID dari input form (item.id) sudah menyertakan kategori, gunakan itu, jika tidak buat yang unik secara global
     const newId = item.id && item.id.includes('-') ? item.id : (item.id ? `${catCode}-${item.id}` : `${catCode}-${sequence}`);
 

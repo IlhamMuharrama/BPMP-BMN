@@ -18,7 +18,8 @@ import {
   ChevronRight,
   PackageCheck,
   FolderTree,
-  Tag
+  Tag,
+  AlertCircle
 } from 'lucide-react';
 import { Barang, Kategori, Supplier, Satuan } from '../types';
 import ImagePicker from './ImagePicker';
@@ -298,12 +299,10 @@ export default function BarangView({
                       />
                     </td>
                     <td className="p-4">
-                      <div className="flex flex-col gap-1">
-                        <span className="font-mono bg-red-50 text-red-800 border border-red-200 px-2 py-0.5 rounded text-[10px] font-bold w-fit">
-                          Kat: {item.kategoriId}
-                        </span>
-                        <span className="font-mono bg-slate-100 text-slate-800 px-2 py-0.5 rounded text-[11px] font-bold w-fit">
-                          Item: {item.id}
+                      <div className="flex flex-col gap-1 mt-1">
+                        <span className="text-gray-500 text-xs font-medium bg-gray-100 px-2 py-1 rounded w-fit inline-flex items-center gap-1">
+                          <Tag className="w-3 h-3" />
+                          Kode: <strong className="text-gray-700 tracking-wide font-mono">{item.id.replace('-', '.')}</strong>
                         </span>
                       </div>
                     </td>
@@ -703,20 +702,19 @@ export default function BarangView({
                   <label className="block text-gray-500">Kategori *</label>
                   <select
                     value={editFormData.kategori}
-                    onChange={e => {
-                      const selectedCat = kategoriList.find(c => c.nama === e.target.value);
-                      if (selectedCat) {
-                        setEditFormData({ ...editFormData, kategori: e.target.value, kategoriId: selectedCat.id });
-                      }
-                    }}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                    disabled={true}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl bg-slate-50 text-gray-500 cursor-not-allowed"
                   >
                     {kategoriList.map(cat => (
                       <option key={cat.id} value={cat.nama}>
-                        {cat.nama}
+                        {cat.id} - {cat.nama}
                       </option>
                     ))}
                   </select>
+                  <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    Kategori tidak dapat diubah setelah barang dibuat untuk menjaga konsistensi Kode Barang.
+                  </p>
                 </div>
 
                 {/* Supplier */}
