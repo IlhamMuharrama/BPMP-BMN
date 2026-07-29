@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Barang, ActiveTab, AuditLog, Unit, Pegawai, BarangKeluar, Kategori } from '../types';
 import QRScannerModal from './QRScannerModal';
+import DashboardCharts from './DashboardCharts';
 import { useState, useEffect } from 'react';
 import { Check, X, ShieldAlert, Clock } from 'lucide-react';
 
@@ -577,58 +578,19 @@ export default function DashboardView({
 
       {/* Main Grid: Charts & Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Charts and distributions (2 cols on large screen) */}
-        <div className="bg-white p-6 rounded-xl border border-[#E5E7EB] shadow-sm space-y-6 lg:col-span-2 flex flex-col justify-between">
-          <div className="space-y-6">
-            <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-3">
-              <h3 className="font-bold text-[#111827] text-sm flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-[#2563EB]" />
-                Statistik Volume Stok Berdasarkan Kategori
-              </h3>
-              <span className="text-[10px] bg-[#2563EB]/10 text-[#2563EB] px-2.5 py-1 rounded font-semibold">Volume Unit</span>
-            </div>
-
-            <div className="space-y-4">
-              {chartCategories.length === 0 ? (
-                <div className="py-12 text-center text-xs text-[#6B7280]">Tidak ada data untuk ditampilkan</div>
-              ) : (
-                chartCategories.map((cat, i) => (
-                  <div key={cat.name} className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-medium text-[#111827] truncate max-w-[280px]">{cat.name}</span>
-                      <span className="font-bold text-[#111827]">{cat.value} Unit</span>
-                    </div>
-                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden flex">
-                      <div
-                        className={`h-full rounded-full transition-all duration-500 ${
-                          i === 0 ? 'bg-[#2563EB]' : i === 1 ? 'bg-indigo-500' : i === 2 ? 'bg-violet-500' : 'bg-slate-400'
-                        }`}
-                        style={{ width: `${(cat.value / maxCatValue) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Quick Metrics */}
-          <div className="grid grid-cols-3 gap-4 pt-6 border-t border-[#E5E7EB] text-center mt-6">
-            <div className="p-3 bg-[#F8FAFC] rounded-lg border border-[#E5E7EB]">
-              <span className="text-[10px] text-[#6B7280] block font-medium">Total Kategori</span>
-              <span className="text-sm font-bold text-[#111827] block mt-0.5">{categoriesCount}</span>
-            </div>
-            <div className="p-3 bg-[#F8FAFC] rounded-lg border border-[#E5E7EB]">
-              <span className="text-[10px] text-[#6B7280] block font-medium">Total Supplier</span>
-              <span className="text-sm font-bold text-[#111827] block mt-0.5">{suppliersCount}</span>
-            </div>
-            <div className="p-3 bg-[#F8FAFC] rounded-lg border border-[#E5E7EB]">
-              <span className="text-[10px] text-[#6B7280] block font-medium">Stok Rerata / Item</span>
-              <span className="text-sm font-bold text-[#111827] block mt-0.5">
-                {totalBarang > 0 ? Math.round(totalStokUnit / totalBarang) : 0} Pcs
-              </span>
-            </div>
-          </div>
+        {/* Modern Interactive Dashboard Charts (2 cols on large screen) */}
+        <div className="lg:col-span-2">
+          <DashboardCharts
+            barang={barang}
+            kategoriList={kategoriList}
+            onQuickRestock={(bId) => {
+              if (setQuickAddType && setQuickAddBarangId) {
+                setQuickAddType('masuk');
+                setQuickAddBarangId(bId);
+              }
+              setActiveTab('barang_masuk');
+            }}
+          />
         </div>
 
         {/* Low Stock Alerts */}
