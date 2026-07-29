@@ -4,16 +4,25 @@
  */
 
 import React, { useState } from 'react';
-import { Search, Calendar, ArrowDownLeft, ArrowUpRight, History, Download, FileSpreadsheet } from 'lucide-react';
-import { Riwayat } from '../types';
+import { Search, Calendar, ArrowDownLeft, ArrowUpRight, History, Download, FileSpreadsheet, Printer } from 'lucide-react';
+import { Riwayat, Settings } from '../types';
 
 interface RiwayatViewProps {
   riwayat: Riwayat[];
+  settings?: Settings;
 }
 
-export default function RiwayatView({ riwayat }: RiwayatViewProps) {
+export default function RiwayatView({ riwayat, settings }: RiwayatViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'masuk' | 'keluar'>('all');
+
+  const subHeaderKop = settings?.subHeaderKop || 'KEMENTERIAN PENDIDIKAN, KEBUDAYAAN, RISET, DAN TEKNOLOGI';
+  const namaInstansi = settings?.namaInstitusi || 'BALAI PENJAMINAN MUTU PENDIDIKAN PROVINSI SUMATERA SELATAN';
+  const alamatKop = settings?.alamatKop || 'Jl. Jenderal Sudirman Km. 6.5 Palembang Telp. (0711) 356789 Fax. 356790';
+  const kontakKop = settings?.kontakKop || 'Email: bpmp.sumsel@kemdikbud.go.id | Laman: bpmp-sumsel.kemdikbud.go.id';
+  const namaPj = settings?.namaPenanggungJawab || 'Ilham Muharrama';
+  const jabatanPj = settings?.jabatanPenanggungJawab || 'Administrator / Petugas BMN';
+  const nipPj = settings?.nipPenanggungJawab || '-';
 
   const filteredRiwayat = riwayat.filter(item => {
     const matchesSearch =
@@ -27,6 +36,157 @@ export default function RiwayatView({ riwayat }: RiwayatViewProps) {
 
     return matchesSearch && matchesType;
   });
+
+  const handlePrintPDF = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const todayDate = new Date().toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+
+    const totalMasuk = filteredRiwayat
+      .filter(r => r.tipe === 'Masuk')
+      .reduce((sum, r) => sum + (Number(r.jumlah) || 0), 0);
+    
+    const totalKeluar = filteredRiwayat
+      .filter(r => r.tipe === 'Keluar')
+      .reduce((sum, r) => sum + (Number(r.jumlah) || 0), 0);
+
+    const rows = filteredRiwayat
+      .map((r, i) => {
+        const isMasuk = r.tipe === 'Masuk';
+        const formattedDate = new Date(r.tanggal).toLocaleDateString('id-ID', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        });
+        const formattedTime = new Date(r.tanggal).toLocaleTimeString('id-ID', {
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+
+        return `
+          <tr>
+            <td style="text-align: center; border: 1px solid black; padding: 6px;">${i + 1}</td>
+            <td style="text-align: center; border: 1px solid black; padding: 6px; font-family: monospace; font-size: 10px;">${r.id}</td>
+            <td style="text-align: center; border: 1px solid black; padding: 6px;">${formattedDate}<br/><span style="font-size: 9px; color: #555;">${formattedTime} WIB</span></td>
+            <td style="text-align: center; border: 1px solid black; padding: 6px; font-weight: bold; color: ${isMasuk ? '#15803d' : '#b91c1c'};">
+              ${isMasuk ? 'MASUK (+)' : 'KELUAR (-)'}
+            </td>
+            <td style="text-align: center; border: 1px solid black; padding: 6px; font-family: monospace; font-size: 10px;">${r.barangId}</td>
+            <td style="border: 1px solid black; padding: 6px; font-weight: bold;">${r.namaBarang}</td>
+            <td style="text-align: center; border: 1px solid black; padding: 6px; font-weight: bold; color: ${isMasuk ? '#15803d' : '#b91c1c'};">
+              ${isMasuk ? '+' : '-'}${r.jumlah}
+            </td>
+            <td style="border: 1px solid black; padding: 6px;">${r.petugas || '-'}</td>
+            <td style="border: 1px solid black; padding: 6px; font-size: 10px;">${r.keterangan || '-'}</td>
+          </tr>
+        `;
+      })
+      .join('');
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Laporan Riwayat Mutasi BMN - BPMP Sumsel</title>
+          <style>
+            body { font-family: 'Times New Roman', serif; margin: 30px; color: black; line-height: 1.4; }
+            .kop { text-align: center; border-bottom: 3px double black; padding-bottom: 10px; margin-bottom: 20px; }
+            .kop h2 { margin: 0; font-size: 14px; text-transform: uppercase; font-weight: normal; }
+            .kop h1 { margin: 5px 0; font-size: 17px; text-transform: uppercase; font-weight: bold; }
+            .kop p { margin: 2px 0; font-size: 11px; }
+            .meta { text-align: center; font-size: 13px; font-weight: bold; text-transform: uppercase; margin-bottom: 20px; }
+            .meta span { display: block; margin-top: 4px; font-size: 11px; font-weight: normal; text-transform: none; }
+            .filter-info { font-size: 11px; font-style: italic; margin-bottom: 10px; color: #444; }
+            table { width: 100%; border-collapse: collapse; font-size: 10.5px; margin-bottom: 25px; }
+            th { border: 1px solid black; padding: 7px 5px; background-color: #f2f2f2; font-weight: bold; text-transform: uppercase; font-size: 10px; }
+            .total-row td { border: 1px solid black; padding: 6px; font-weight: bold; background-color: #fafafa; }
+            .signature-block { width: 100%; margin-top: 40px; font-size: 11.5px; page-break-inside: avoid; }
+            .signature-block table { border: none; font-size: 11.5px; margin: 0; }
+            .signature-block td { border: none; padding: 0; }
+            @media print { .no-print { display: none; } }
+          </style>
+        </head>
+        <body>
+          <div class="kop">
+            <h2>${subHeaderKop}</h2>
+            <h1>${namaInstansi}</h1>
+            <p>${alamatKop}</p>
+            <p>${kontakKop}</p>
+          </div>
+
+          <div class="meta">
+            LAPORAN BUKU RIWAYAT MUTASI PERSEDIAAN BARANG BMN
+            <span>(BUKU BESAR SIRKULASI BARANG MASUK & BARANG KELUAR)</span>
+            <span>Per Tanggal: ${todayDate} • Total Catatan: ${filteredRiwayat.length} Transaksi</span>
+          </div>
+
+          ${
+            filterType !== 'all' || searchTerm
+              ? `<div class="filter-info">Filter Aktif: Tipe = <strong>${filterType === 'all' ? 'Semua' : filterType === 'masuk' ? 'Barang Masuk' : 'Barang Keluar'}</strong> ${searchTerm ? `| Kata Kunci = "<strong>${searchTerm}</strong>"` : ''}</div>`
+              : ''
+          }
+
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 4%">No</th>
+                <th style="width: 12%">ID Transaksi</th>
+                <th style="width: 13%">Tanggal & Waktu</th>
+                <th style="width: 10%">Jenis</th>
+                <th style="width: 14%">Kode Barang</th>
+                <th style="width: 20%">Nama Barang</th>
+                <th style="width: 7%">Volume</th>
+                <th style="width: 10%">Petugas</th>
+                <th style="width: 10%">Keterangan</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.length > 0 ? rows : '<tr><td colspan="9" style="text-align:center; padding: 15px;">Tidak ada data mutasi yang sesuai filter.</td></tr>'}
+              <tr class="total-row">
+                <td colspan="6" style="text-align: right;">TOTAL VOLUME MUTASI MASUK (+)</td>
+                <td style="text-align: center; color: #15803d;">+${totalMasuk}</td>
+                <td colspan="2"></td>
+              </tr>
+              <tr class="total-row">
+                <td colspan="6" style="text-align: right;">TOTAL VOLUME MUTASI KELUAR (-)</td>
+                <td style="text-align: center; color: #b91c1c;">-${totalKeluar}</td>
+                <td colspan="2"></td>
+              </tr>
+              <tr class="total-row">
+                <td colspan="6" style="text-align: right;">AKUMULASI NETTO SISA MUTASI</td>
+                <td style="text-align: center; color: #1e40af;">${totalMasuk - totalKeluar >= 0 ? '+' : ''}${totalMasuk - totalKeluar}</td>
+                <td colspan="2"></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="signature-block">
+            <table style="width: 100%; border: none;">
+              <tr>
+                <td style="width: 60%;"></td>
+                <td style="width: 40%; text-align: center;">
+                  Palembang, ${todayDate}<br/>
+                  Mengetahui,<br/>
+                  <strong>${jabatanPj}</strong>
+                  <br/><br/><br/><br/><br/>
+                  <u><strong>${namaPj}</strong></u><br/>
+                  NIP. ${nipPj}
+                </td>
+              </tr>
+            </table>
+          </div>
+
+          <br/><br/>
+          <button onclick="window.print()" class="no-print" style="padding: 10px 20px; background: #2563EB; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; display: block; margin: 0 auto;">Cetak Laporan PDF</button>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
 
   const handleExportCSV = () => {
     // Generate actual CSV content
@@ -78,13 +238,21 @@ export default function RiwayatView({ riwayat }: RiwayatViewProps) {
           </select>
         </div>
 
-        {/* Export action */}
-        <button
-          onClick={handleExportCSV}
-          className="w-full md:w-auto flex items-center justify-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
-        >
-          <FileSpreadsheet className="w-4 h-4 text-green-400" /> Ekspor ke Spreadsheet (CSV)
-        </button>
+        {/* Export actions */}
+        <div className="w-full md:w-auto flex flex-col sm:flex-row items-center gap-2">
+          <button
+            onClick={handlePrintPDF}
+            className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
+          >
+            <Printer className="w-4 h-4" /> Cetak PDF (Kop Resmi)
+          </button>
+          <button
+            onClick={handleExportCSV}
+            className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-green-400" /> Spreadsheet (.csv)
+          </button>
+        </div>
       </div>
 
       {/* Timeline List */}

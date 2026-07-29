@@ -1324,7 +1324,7 @@ const handler = setTimeout(async () => {
                 />
               )}
 
-              {activeTab === 'riwayat' && <RiwayatView riwayat={riwayatList} />}
+              {activeTab === 'riwayat' && <RiwayatView riwayat={riwayatList} settings={settings} />}
 
               {activeTab === 'laporan' && (
                 <LaporanView barang={barangList} riwayat={riwayatList} instituteName={settings.namaInstitusi} settings={settings} />

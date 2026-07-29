@@ -91,6 +91,7 @@ export default function TransaksiMasukView({
   const [petugas, setPetugas] = useState(() => pegawaiList?.[0]?.nama || 'Roni Setiawan');
   const [catatan, setCatatan] = useState('');
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -200,6 +201,10 @@ export default function TransaksiMasukView({
       return;
     }
 
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmSubmit = () => {
     onProcessTransaksi({
       barangId: selectedBarangId,
       namaBarang: barangList.find(b => b.id === selectedBarangId)?.nama || '',
@@ -215,6 +220,7 @@ export default function TransaksiMasukView({
     setCatatan('');
     setUploadedFile('');
     setUploadedFileData('');
+    setShowConfirmModal(false);
     if (clearQuickAdd) clearQuickAdd();
   };
 
@@ -259,6 +265,91 @@ export default function TransaksiMasukView({
         barangList={barangList}
         kategoriList={kategoriList}
       />
+
+      {/* Confirmation Popup Modal for Barang Masuk */}
+      {showConfirmModal && selectedItem && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-gray-100 overflow-hidden text-xs">
+            {/* Header */}
+            <div className="p-4 bg-slate-900 text-white flex items-center justify-between">
+              <span className="text-xs font-bold flex items-center gap-2">
+                <ShieldAlert className="w-4 h-4 text-emerald-400" />
+                KONFIRMASI PENERIMAAN BARANG MASUK
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowConfirmModal(false)}
+                className="p-1 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-4 text-slate-700">
+              <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-xl text-[11px] text-emerald-900 leading-relaxed flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <strong>KONFIRMASI STOK:</strong> Transaksi penerimaan barang ini akan ditambahkan ke persediaan BMN secara otomatis.
+                </div>
+              </div>
+
+              <div className="space-y-2.5 bg-slate-50 p-4 border border-slate-200/80 rounded-xl">
+                <div className="grid grid-cols-3 py-1 border-b border-gray-200">
+                  <span className="text-gray-500 font-semibold">Nama Item:</span>
+                  <span className="col-span-2 font-bold text-gray-900">{selectedItem.nama} ({selectedItem.id})</span>
+                </div>
+                <div className="grid grid-cols-3 py-1 border-b border-gray-200">
+                  <span className="text-gray-500 font-semibold">Volume Masuk:</span>
+                  <span className="col-span-2 font-bold text-emerald-600 text-sm">+{jumlah} {selectedItem.satuan}</span>
+                </div>
+                <div className="grid grid-cols-3 py-1 border-b border-gray-200">
+                  <span className="text-gray-500 font-semibold">Estimasi Stok Baru:</span>
+                  <span className="col-span-2 font-bold text-slate-800">
+                    {selectedItem.stokSekarang + jumlah} {selectedItem.satuan}
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 py-1 border-b border-gray-200">
+                  <span className="text-gray-500 font-semibold">Penyedia / Supplier:</span>
+                  <span className="col-span-2 font-bold text-gray-900">{selectedSupplier || '-'}</span>
+                </div>
+                <div className="grid grid-cols-3 py-1 border-b border-gray-200">
+                  <span className="text-gray-500 font-semibold">Petugas Penerima:</span>
+                  <span className="col-span-2 font-medium text-gray-800">{petugas}</span>
+                </div>
+                <div className="grid grid-cols-3 py-1 border-b border-gray-200">
+                  <span className="text-gray-500 font-semibold">Dokumen Lampiran:</span>
+                  <span className="col-span-2 font-medium text-blue-700 truncate">
+                    {uploadedFile || 'Dokumen_Penerimaan_Fisik_signed.pdf'}
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 py-1">
+                  <span className="text-gray-500 font-semibold">Catatan / BAP:</span>
+                  <span className="col-span-2 text-gray-900 italic font-medium">"{catatan || 'Penerimaan rutin persediaan BMN'}"</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 bg-slate-50 border-t border-gray-100 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setShowConfirmModal(false)}
+                className="px-4 py-2 bg-white border border-gray-200 hover:bg-slate-100 text-slate-700 font-bold rounded-xl cursor-pointer transition-all"
+              >
+                Batal / Perbaiki Form
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmSubmit}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow cursor-pointer transition-all flex items-center gap-1.5"
+              >
+                <Check className="w-4 h-4" /> Ya, Konfirmasi Simpan Barang Masuk
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Module Header Banner */}
       <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
