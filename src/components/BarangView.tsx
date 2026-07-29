@@ -256,23 +256,25 @@ export default function BarangView({
         {/* Create Action */}
         {!isReadOnly && (
           <div className="w-full md:w-auto flex flex-col md:flex-row items-center gap-2">
-            <button
-              onClick={() => {
-                const fileInput = document.createElement('input');
-                fileInput.type = 'file';
-                fileInput.accept = '.csv';
-                fileInput.onchange = (e: any) => {
-                  const file = e.target.files[0];
-                  if (file) {
-                    onImportCsv && onImportCsv(file);
-                  }
-                };
-                fileInput.click();
-              }}
-              className="w-full md:w-auto flex items-center justify-center gap-1.5 px-4 py-2 bg-white border border-gray-200 hover:bg-slate-50 text-gray-700 rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
-            >
-              <Upload className="w-4 h-4" /> Import CSV
-            </button>
+            {currentUserRole === 'Administrator' && (
+              <button
+                onClick={() => {
+                  const fileInput = document.createElement('input');
+                  fileInput.type = 'file';
+                  fileInput.accept = '.csv';
+                  fileInput.onchange = (e: any) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      onImportCsv && onImportCsv(file);
+                    }
+                  };
+                  fileInput.click();
+                }}
+                className="w-full md:w-auto flex items-center justify-center gap-1.5 px-4 py-2 bg-white border border-gray-200 hover:bg-slate-50 text-gray-700 rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
+              >
+                <Upload className="w-4 h-4" /> Import CSV
+              </button>
+            )}
             <button
               onClick={handleOpenAdd}
               className="w-full md:w-auto flex items-center justify-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"

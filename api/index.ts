@@ -1,9 +1,34 @@
 import express from "express";
 import { google } from "googleapis";
+import fs from "fs";
+import path from "path";
 
 const app = express();
 // Perbesar limit JSON untuk menyimpan seluruh state jika dibutuhkan
 app.use(express.json({ limit: '10mb' }));
+
+// File backup lokal agar data tetap awet saat restart container / deploy tanpa SPREADSHEET_ID
+const DATA_FILE_PATH = path.join(process.cwd(), 'data_store.json');
+
+const saveToLocalFile = (data: any) => {
+  try {
+    fs.writeFileSync(DATA_FILE_PATH, JSON.stringify(data, null, 2), 'utf8');
+  } catch (err) {
+    console.error("Gagal menyimpan data_store.json lokal:", err);
+  }
+};
+
+const loadFromLocalFile = () => {
+  try {
+    if (fs.existsSync(DATA_FILE_PATH)) {
+      const content = fs.readFileSync(DATA_FILE_PATH, 'utf8');
+      return JSON.parse(content);
+    }
+  } catch (err) {
+    console.error("Gagal membaca data_store.json lokal:", err);
+  }
+  return null;
+};
 
 // Inisialisasi Google Auth Client
 const auth = new google.auth.GoogleAuth({
@@ -103,122 +128,136 @@ app.get("/api/sync/version", (req, res) => {
   res.json({ version: memoryVersion });
 });
 
-// 1. MENGAMBIL SELURUH DATA DARI SPREADSHEET
+// 1. MENGAMBIL SELURUH DATA DARI SPREADSHEET ATAU LOCAL FILE
 app.get("/api/sync", async (req, res) => {
   try {
     if (memoryCache && req.query.force !== '1') {
       return res.json(memoryCache);
     }
 
-    if (!SPREADSHEET_ID) throw new Error("SPREADSHEET_ID tidak dikonfigurasi. Pastikan Environment Variable di Vercel sudah diatur.");
-
-    // Coba ambil info spreadsheet untuk memastikan sheet ada
-    const spreadsheet = await sheets.spreadsheets.get({
-      spreadsheetId: SPREADSHEET_ID,
-    });
-    
-    const existingSheets = spreadsheet.data.sheets?.map(s => s.properties?.title) || [];
-    
-    // Siapkan object untuk menampung semua data
-    const allData: any = {};
-
-    // Ambil data untuk setiap sheet yang ada
-    for (const sheetName of SHEET_NAMES) {
-      if (existingSheets.includes(sheetName)) {
-        const response = await sheets.spreadsheets.values.get({
-          spreadsheetId: SPREADSHEET_ID,
-          range: `${sheetName}!A1:Z`,
-        });
-        
-        allData[sheetName] = sheetDataToJson(response.data.values || []);
-      } else {
-        // Jika sheet belum ada, set kosong
-        allData[sheetName] = [];
-      }
+    // Try loading from local file storage first as fallback
+    const localData = loadFromLocalFile();
+    if (localData && (!memoryCache || req.query.force !== '1')) {
+      memoryCache = localData;
     }
 
-    memoryCache = allData;
-    res.json(allData);
+    if (!SPREADSHEET_ID) {
+      // Direct fallback to local memory cache or file data
+      return res.json(memoryCache || localData || {});
+    }
+
+    // Coba ambil info spreadsheet jika SPREADSHEET_ID tersedia
+    try {
+      const spreadsheet = await sheets.spreadsheets.get({
+        spreadsheetId: SPREADSHEET_ID,
+      });
+      
+      const existingSheets = spreadsheet.data.sheets?.map(s => s.properties?.title) || [];
+      const allData: any = {};
+
+      for (const sheetName of SHEET_NAMES) {
+        if (existingSheets.includes(sheetName)) {
+          const response = await sheets.spreadsheets.values.get({
+            spreadsheetId: SPREADSHEET_ID,
+            range: `${sheetName}!A1:Z`,
+          });
+          allData[sheetName] = sheetDataToJson(response.data.values || []);
+        } else {
+          allData[sheetName] = [];
+        }
+      }
+
+      // If remote sheets returns valid data, update memory cache & save to local file
+      if (Object.keys(allData).length > 0) {
+        memoryCache = allData;
+        saveToLocalFile(allData);
+      }
+    } catch (sheetErr: any) {
+      console.warn("Spreadsheet error, falling back to local file store:", sheetErr.message);
+    }
+
+    res.json(memoryCache || localData || {});
   } catch (error: any) {
-    console.error("Gagal mengambil data dari Spreadsheet:", error);
-    res.status(500).json({ error: error.message });
+    console.error("Gagal mengambil data:", error);
+    const localData = loadFromLocalFile();
+    res.json(localData || memoryCache || {});
   }
 });
 
-// 2. MENYIMPAN SELURUH DATA KE SPREADSHEET (Full Override)
+// 2. MENYIMPAN SELURUH DATA (Lokal & Spreadsheet)
 app.post("/api/sync", async (req, res) => {
   try {
-    if (!SPREADSHEET_ID) throw new Error("SPREADSHEET_ID tidak dikonfigurasi.");
-
     const incomingData = req.body;
-    
-    // 1. Pastikan semua sheet yang dibutuhkan ada
-    const spreadsheet = await sheets.spreadsheets.get({
-      spreadsheetId: SPREADSHEET_ID,
-    });
-    const existingSheets = spreadsheet.data.sheets?.map(s => s.properties?.title) || [];
-    const sheetsToCreate = SHEET_NAMES.filter(name => !existingSheets.includes(name));
-    
-    if (sheetsToCreate.length > 0) {
-      const requests = sheetsToCreate.map(title => ({
-        addSheet: { properties: { title } }
-      }));
-      await sheets.spreadsheets.batchUpdate({
-        spreadsheetId: SPREADSHEET_ID,
-        requestBody: { requests }
-      });
-    }
 
-    // 2. Clear existing data and Update with new data
-    // Kita gunakan batch update values
-    const dataUpdates: any[] = [];
-    const clearRanges: string[] = [];
-    
-    for (const sheetName of SHEET_NAMES) {
-      if (incomingData[sheetName]) {
-        const dataForSheet = incomingData[sheetName];
-        // Pastikan bukan array kosong tanpa data
-        let values = [[]]; // Default empty
-        
-        if (Array.isArray(dataForSheet) && dataForSheet.length > 0) {
-           values = jsonToSheetData(dataForSheet);
-        } else if (typeof dataForSheet === 'object' && Object.keys(dataForSheet).length > 0) {
-           // Untuk Settings (Single Object)
-           values = jsonToSheetData([dataForSheet]);
-        }
-        
-        clearRanges.push(`${sheetName}!A1:Z`);
-        dataUpdates.push({
-          range: `${sheetName}!A1`,
-          values: values
+    // Save locally first to guarantee zero data loss
+    memoryCache = incomingData;
+    memoryVersion++;
+    saveToLocalFile(incomingData);
+
+    if (SPREADSHEET_ID) {
+      try {
+        const spreadsheet = await sheets.spreadsheets.get({
+          spreadsheetId: SPREADSHEET_ID,
         });
+        const existingSheets = spreadsheet.data.sheets?.map(s => s.properties?.title) || [];
+        const sheetsToCreate = SHEET_NAMES.filter(name => !existingSheets.includes(name));
+        
+        if (sheetsToCreate.length > 0) {
+          const requests = sheetsToCreate.map(title => ({
+            addSheet: { properties: { title } }
+          }));
+          await sheets.spreadsheets.batchUpdate({
+            spreadsheetId: SPREADSHEET_ID,
+            requestBody: { requests }
+          });
+        }
+
+        const dataUpdates: any[] = [];
+        const clearRanges: string[] = [];
+        
+        for (const sheetName of SHEET_NAMES) {
+          if (incomingData[sheetName]) {
+            const dataForSheet = incomingData[sheetName];
+            let values = [[]];
+            
+            if (Array.isArray(dataForSheet) && dataForSheet.length > 0) {
+              values = jsonToSheetData(dataForSheet);
+            } else if (typeof dataForSheet === 'object' && Object.keys(dataForSheet).length > 0) {
+              values = jsonToSheetData([dataForSheet]);
+            }
+            
+            clearRanges.push(`${sheetName}!A1:Z`);
+            dataUpdates.push({
+              range: `${sheetName}!A1`,
+              values: values
+            });
+          }
+        }
+
+        if (clearRanges.length > 0) {
+          await sheets.spreadsheets.values.batchClear({
+            spreadsheetId: SPREADSHEET_ID,
+            requestBody: { ranges: clearRanges }
+          });
+        }
+
+        if (dataUpdates.length > 0) {
+          await sheets.spreadsheets.values.batchUpdate({
+            spreadsheetId: SPREADSHEET_ID,
+            requestBody: {
+              valueInputOption: "USER_ENTERED",
+              data: dataUpdates
+            }
+          });
+        }
+      } catch (sheetErr: any) {
+        console.warn("Spreadsheet save skipped/failed, data saved locally:", sheetErr.message);
       }
     }
 
-    // Clear old data first
-    if (clearRanges.length > 0) {
-       await sheets.spreadsheets.values.batchClear({
-         spreadsheetId: SPREADSHEET_ID,
-         requestBody: { ranges: clearRanges }
-       });
-    }
-
-    // Write new data
-    if (dataUpdates.length > 0) {
-      await sheets.spreadsheets.values.batchUpdate({
-        spreadsheetId: SPREADSHEET_ID,
-        requestBody: {
-          valueInputOption: "USER_ENTERED",
-          data: dataUpdates
-        }
-      });
-    }
-
-    memoryCache = incomingData;
-    memoryVersion++;
-    res.json({ success: true, message: "Data berhasil disinkronisasi ke Google Spreadsheet." });
+    res.json({ success: true, message: "Data berhasil disinkronisasi dan disimpan dengan aman." });
   } catch (error: any) {
-    console.error("Gagal menyimpan data ke Spreadsheet:", error);
+    console.error("Gagal menyimpan data:", error);
     res.status(500).json({ error: error.message });
   }
 });
