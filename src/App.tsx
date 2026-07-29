@@ -202,15 +202,39 @@ export default function App() {
         if (res.ok) {
           const data = await res.json();
           skipNextSaveRef.current = true;
-          if (Array.isArray(data.Barang)) setBarangList(data.Barang);
+          
+          const rawBarang = Array.isArray(data.Barang) ? data.Barang : [];
+          // MIGRASI STRUKTUR PROFESIONAL: Pastikan ID / Kode Barang unik secara global dengan menggabungkan Kategori + Sequence
+          const migratedBarang = rawBarang.map((b: Barang) => {
+             // Jika id masih format lama yang hanya sequence (misal "000001") dan tidak ada tanda hubung, kita perbarui
+             if (b.id && !b.id.includes('-') && b.kategoriId) {
+               return { ...b, id: `${b.kategoriId}-${b.id}` };
+             }
+             return b;
+          });
+          
+          const fixTransId = (t: any) => {
+             if (t.barangId && !t.barangId.includes('-')) {
+                // Temukan barang yang cocok berdasarkan nama untuk disambiguasi jika ID lama bentrok
+                const matched = migratedBarang.find(b => b.nama === t.namaBarang && b.id.endsWith(`-${t.barangId}`));
+                if (matched) {
+                   return { ...t, barangId: matched.id };
+                }
+             }
+             return t;
+          };
+
+          setBarangList(migratedBarang);
           if (Array.isArray(data.Kategori)) setKategoriList(data.Kategori);
           if (Array.isArray(data.Supplier)) setSupplierList(data.Supplier);
           if (Array.isArray(data.Unit)) setUnitList(data.Unit);
           if (Array.isArray(data.Satuan)) setSatuanList(data.Satuan);
           if (Array.isArray(data.Pegawai)) setPegawaiList(data.Pegawai);
-          if (Array.isArray(data.BarangMasuk)) setBarangMasukList(data.BarangMasuk);
-          if (Array.isArray(data.BarangKeluar)) setBarangKeluarList(data.BarangKeluar);
-          if (Array.isArray(data.Riwayat)) setRiwayatList(data.Riwayat);
+          
+          if (Array.isArray(data.BarangMasuk)) setBarangMasukList(data.BarangMasuk.map(fixTransId));
+          if (Array.isArray(data.BarangKeluar)) setBarangKeluarList(data.BarangKeluar.map(fixTransId));
+          if (Array.isArray(data.Riwayat)) setRiwayatList(data.Riwayat.map(fixTransId));
+
           if (Array.isArray(data.AuditLog)) setAuditLogsList(data.AuditLog);
           if (Array.isArray(data.Accounts) && data.Accounts.length > 0) {
             const updatedAccs = data.Accounts.map((a: UserAccount) =>
@@ -477,7 +501,9 @@ const handler = setTimeout(async () => {
     const catCode = cat ? cat.id : (item.kategoriId || '1010301001');
 
     const sameCatItems = barangList.filter(b => b.kategoriId === catCode || b.kategori === item.kategori);
-    const newId = item.id || String(sameCatItems.length + 1).padStart(6, '0');
+    const sequence = String(sameCatItems.length + 1).padStart(6, '0');
+    // Jika ID dari input form (item.id) sudah menyertakan kategori, gunakan itu, jika tidak buat yang unik secara global
+    const newId = item.id && item.id.includes('-') ? item.id : (item.id ? `${catCode}-${item.id}` : `${catCode}-${sequence}`);
 
     const newBarang: Barang = {
       ...item,

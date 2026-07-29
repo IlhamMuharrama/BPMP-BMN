@@ -153,7 +153,7 @@ export default function BarangView({
       ...prev,
       kategoriId: selected.id,
       kategori: selected.nama,
-      id: nextCode
+      id: `${selected.id}-${nextCode}`
     }));
   };
 
@@ -703,7 +703,12 @@ export default function BarangView({
                   <label className="block text-gray-500">Kategori *</label>
                   <select
                     value={editFormData.kategori}
-                    onChange={e => setEditFormData({ ...editFormData, kategori: e.target.value })}
+                    onChange={e => {
+                      const selectedCat = kategoriList.find(c => c.nama === e.target.value);
+                      if (selectedCat) {
+                        setEditFormData({ ...editFormData, kategori: e.target.value, kategoriId: selectedCat.id });
+                      }
+                    }}
                     className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-600 focus:outline-none"
                   >
                     {kategoriList.map(cat => (
