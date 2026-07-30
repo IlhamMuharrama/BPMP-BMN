@@ -1379,6 +1379,14 @@ const handler = setTimeout(async () => {
                     onResetDatabase={handleResetDatabase}
                     onSimulateBackup={handleSimulateBackup}
                     driveFiles={driveFiles}
+                    currentUserRole={currentRole}
+                    currentUser={currentUser || undefined}
+                    stats={{
+                      totalBarang: barangList.length,
+                      totalMasuk: barangMasukList.length,
+                      totalKeluar: barangKeluarList.length,
+                      totalAuditLogs: auditLogsList.length
+                    }}
                   />
                 ) : (
                   <div className="bg-white p-8 rounded-2xl border border-gray-200 text-center space-y-4 max-w-lg mx-auto mt-10 shadow-xs">
