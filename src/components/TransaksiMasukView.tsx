@@ -8,7 +8,8 @@ import {
   Search, X, PlusCircle, FileText, ArrowDownLeft, Upload, FileUp, 
   AlertCircle, Sparkles, QrCode, Download, FolderTree, Package, 
   History, ArrowLeft, Filter, RefreshCw, CheckCircle2, ShieldAlert,
-  Calendar, UserCheck, Truck, LayoutGrid, FileCheck, Copy, Check
+  Calendar, UserCheck, Truck, LayoutGrid, FileCheck, Copy, Check,
+  Trash2, FileSpreadsheet
 } from 'lucide-react';
 import { Barang, Kategori, Supplier, BarangMasuk, Pegawai } from '../types';
 import QRScannerModal from './QRScannerModal';
@@ -19,6 +20,7 @@ interface TransaksiMasukViewProps {
   supplierList: Supplier[];
   transaksiList: BarangMasuk[];
   onProcessTransaksi: (t: Omit<BarangMasuk, 'id' | 'tanggal'>) => void;
+  onDeleteTransaksi?: (ids: string[]) => void;
   currentUserRole: string;
   quickAddBarangId?: string;
   clearQuickAdd?: () => void;
@@ -32,6 +34,7 @@ export default function TransaksiMasukView({
   supplierList,
   transaksiList,
   onProcessTransaksi,
+  onDeleteTransaksi,
   currentUserRole,
   quickAddBarangId,
   clearQuickAdd,
@@ -40,6 +43,12 @@ export default function TransaksiMasukView({
 }: TransaksiMasukViewProps) {
   // View Mode: 'split' | 'form' | 'history'
   const [viewMode, setViewMode] = useState<'split' | 'form' | 'history'>('split');
+
+  const [selectedMonth, setSelectedMonth] = useState<string>('all');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+
+  const isAdmin = currentUserRole === 'Administrator';
 
   // Category & Item State
   const [categorySearch, setCategorySearch] = useState('');
@@ -226,18 +235,73 @@ export default function TransaksiMasukView({
 
   const selectedItem = barangList.find(b => b.id === selectedBarangId);
 
+  // Available month options
+  const availableMonths = Array.from(
+    new Set(
+      transaksiList
+        .map(t => (t.tanggal ? t.tanggal.slice(0, 7) : ''))
+        .filter(Boolean)
+    )
+  ).sort((a, b) => b.localeCompare(a));
+
   // Filter history list
   const filteredTransaksiList = transaksiList.filter(t => {
-    if (!searchTerm.trim()) return true;
-    const q = searchTerm.toLowerCase();
-    return (
+    const q = searchTerm.trim().toLowerCase();
+    const matchesSearch =
+      !q ||
       t.id.toLowerCase().includes(q) ||
       t.namaBarang.toLowerCase().includes(q) ||
       t.supplier.toLowerCase().includes(q) ||
       t.petugas.toLowerCase().includes(q) ||
-      (t.catatan && t.catatan.toLowerCase().includes(q))
-    );
+      (t.catatan && t.catatan.toLowerCase().includes(q));
+
+    const matchesMonth =
+      selectedMonth === 'all' ? true : t.tanggal && t.tanggal.startsWith(selectedMonth);
+
+    return matchesSearch && matchesMonth;
   });
+
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      setSelectedIds(filteredTransaksiList.map(t => t.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleToggleSelectRow = (id: string) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleConfirmDeleteSelected = () => {
+    if (onDeleteTransaksi && selectedIds.length > 0) {
+      onDeleteTransaksi(selectedIds);
+      setSelectedIds([]);
+      setShowDeleteConfirmModal(false);
+    }
+  };
+
+  const handleExportCSV = () => {
+    const headers = 'ID Transaksi,Tanggal,Kode Barang,Nama Barang,Volume,Supplier,Petugas,Catatan\n';
+    const rows = filteredTransaksiList
+      .map(
+        t =>
+          `"${t.id}","${new Date(t.tanggal).toLocaleDateString()}","${t.barangId}","${
+            t.namaBarang
+          }",+${t.jumlah},"${t.supplier}","${t.petugas}","${(t.catatan || '').replace(/"/g, '""')}"`
+      )
+      .join('\n');
+    const csvContent = 'data:text/csv;charset=utf-8,' + encodeURIComponent(headers + rows);
+
+    const link = document.createElement('a');
+    link.setAttribute('href', csvContent);
+    link.setAttribute('download', `Rekap_Barang_Masuk_BPMP_Sumsel_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const totalVolumeMasuk = transaksiList.reduce((acc, curr) => acc + curr.jumlah, 0);
 
@@ -249,6 +313,53 @@ export default function TransaksiMasukView({
 
   return (
     <div className="space-y-6">
+      {/* Delete Confirmation Modal for Admin */}
+      {showDeleteConfirmModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-gray-100 overflow-hidden text-xs">
+            <div className="p-4 bg-red-600 text-white flex items-center justify-between">
+              <span className="text-xs font-bold flex items-center gap-2">
+                <ShieldAlert className="w-4 h-4" />
+                KONFIRMASI PEMBERSIHAN BARANG MASUK
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirmModal(false)}
+                className="p-1 hover:bg-red-700 rounded-lg text-red-200 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-3 text-slate-700">
+              <p className="font-semibold text-slate-900">
+                Apakah Anda yakin ingin menghapus <strong className="text-red-600 font-bold">{selectedIds.length} transaksi barang masuk</strong> yang dipilih?
+              </p>
+              <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl text-[11px] text-amber-900 leading-relaxed">
+                ⚠️ <strong>PERHATIAN (ADMIN ONLY):</strong> Pembersihan transaksi ini akan diperbarui ke database dan Google Sheets secara permanen. Disarankan untuk mengunduh rekap CSV terlebih dahulu.
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-50 border-t border-gray-100 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirmModal(false)}
+                className="px-4 py-2 bg-white border border-gray-200 hover:bg-slate-100 text-slate-700 font-bold rounded-xl cursor-pointer transition-all"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteSelected}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow cursor-pointer transition-all flex items-center gap-1.5"
+              >
+                <Trash2 className="w-4 h-4" /> Ya, Hapus {selectedIds.length} Transaksi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* QR Scanner Modal overlay */}
       <QRScannerModal
         isOpen={isScannerOpen}
@@ -796,24 +907,62 @@ export default function TransaksiMasukView({
                 </p>
               </div>
 
-              {/* Search Box */}
-              <div className="relative w-full sm:w-64">
-                <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-2.5" />
-                <input
-                  type="text"
-                  placeholder="Cari ID, Barang, Supplier..."
-                  value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-600 focus:outline-none"
-                />
-                {searchTerm && (
+              {/* Controls */}
+              <div className="flex flex-wrap items-center gap-2">
+                {isAdmin && selectedIds.length > 0 && (
                   <button
-                    onClick={() => setSearchTerm('')}
-                    className="absolute right-2.5 top-2 text-gray-400 hover:text-gray-600"
+                    onClick={() => setShowDeleteConfirmModal(true)}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
                   >
-                    <X className="w-3.5 h-3.5" />
+                    <Trash2 className="w-3.5 h-3.5" /> Hapus ({selectedIds.length})
                   </button>
                 )}
+
+                <button
+                  onClick={handleExportCSV}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-green-400" /> Export CSV
+                </button>
+
+                {/* Month Filter */}
+                <select
+                  value={selectedMonth}
+                  onChange={e => setSelectedMonth(e.target.value)}
+                  className="px-2.5 py-1.5 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                >
+                  <option value="all">🗓️ Semua Bulan</option>
+                  {availableMonths.map(m => {
+                    const [yr, mo] = m.split('-');
+                    const dateObj = new Date(Number(yr), Number(mo) - 1, 1);
+                    const monthLabel = dateObj.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
+                    return (
+                      <option key={m} value={m}>
+                        {monthLabel}
+                      </option>
+                    );
+                  })}
+                </select>
+
+                {/* Search Box */}
+                <div className="relative w-full sm:w-48">
+                  <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    placeholder="Cari ID, Barang..."
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm('')}
+                      className="absolute right-2.5 top-2 text-gray-400 hover:text-gray-600"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -821,6 +970,16 @@ export default function TransaksiMasukView({
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="bg-slate-100/70 border-b border-gray-200 text-gray-600 font-bold uppercase tracking-wider text-[10px]">
+                    {isAdmin && (
+                      <th className="p-3 w-8 text-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.length === filteredTransaksiList.length && filteredTransaksiList.length > 0}
+                          onChange={handleSelectAll}
+                          className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-3.5 h-3.5"
+                        />
+                      </th>
+                    )}
                     <th className="p-3">ID Transaksi / Waktu</th>
                     <th className="p-3">Item Barang</th>
                     <th className="p-3 text-center">Volume</th>
@@ -831,14 +990,24 @@ export default function TransaksiMasukView({
                 <tbody className="divide-y divide-gray-100 font-medium text-slate-700">
                   {filteredTransaksiList.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="p-8 text-center text-gray-400">
+                      <td colSpan={isAdmin ? 6 : 5} className="p-8 text-center text-gray-400">
                         <Package className="w-8 h-8 mx-auto text-gray-300 mb-2" />
                         Belum ada transaksi barang masuk yang tercatat / cocok dengan pencarian.
                       </td>
                     </tr>
                   ) : (
                     filteredTransaksiList.map((t, idx) => (
-                      <tr key={`${t.id}_${idx}`} className="hover:bg-slate-50/80 transition-colors">
+                      <tr key={`${t.id}_${idx}`} className={`hover:bg-slate-50/80 transition-colors ${selectedIds.includes(t.id) ? 'bg-emerald-50/40' : ''}`}>
+                        {isAdmin && (
+                          <td className="p-3 text-center">
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.includes(t.id)}
+                              onChange={() => handleToggleSelectRow(t.id)}
+                              className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-3.5 h-3.5"
+                            />
+                          </td>
+                        )}
                         <td className="p-3">
                           <div className="flex items-center gap-1.5">
                             <span className="font-mono font-bold text-gray-900 text-xs">{t.id}</span>

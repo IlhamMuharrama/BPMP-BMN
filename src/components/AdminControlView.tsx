@@ -444,6 +444,26 @@ export default function AdminControlView({
                 </div>
               </div>
 
+              <div className="bg-amber-50/70 border border-amber-200 p-4 rounded-2xl space-y-3 text-slate-700">
+                <div className="flex items-center gap-2 text-amber-900 font-bold text-xs">
+                  <Trash2 className="w-4 h-4 text-amber-600" />
+                  Pembersihan Database & Rekap Bulanan (Khusus Administrator)
+                </div>
+                <p className="text-[11px] text-amber-800 leading-relaxed">
+                  Untuk menjaga kestabilan dan performa database spreadsheet, Admin dapat melakukan rekap data mutasi dan memilih data berdasarkan bulan untuk dibersihkan secara selektif tanpa mereset struktur spreadsheet yang ada.
+                </p>
+                <div className="bg-white p-3 border border-amber-200 rounded-xl text-[11px] space-y-1">
+                  <div className="font-semibold text-slate-800">📌 Panduan Prosedur Rekap Bulanan:</div>
+                  <ul className="list-disc list-inside text-slate-600 space-y-0.5">
+                    <li>Buka halaman <strong>Barang Masuk</strong>, <strong>Barang Keluar</strong>, <strong>Riwayat</strong>, atau <strong>Audit Log</strong>.</li>
+                    <li>Gunakan filter <strong>Periode Bulan</strong> untuk menampilkan data bulan yang akan direkap.</li>
+                    <li>Klik <strong>Unduh Rekap (CSV/PDF)</strong> untuk mengarsipkan laporan secara lokal terlebih dahulu.</li>
+                    <li>Pilih data yang ingin dibersihkan dengan checkbox, lalu klik tombol <strong>Hapus Terpilih (Admin Only)</strong>.</li>
+                    <li>Sistem akan memperbarui database secara aman tanpa menghapus struktur Google Sheets utama.</li>
+                  </ul>
+                </div>
+              </div>
+
               <div className="pt-4 border-t border-gray-100 flex items-center justify-end gap-2">
                 <button
                   type="button"

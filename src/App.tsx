@@ -1005,6 +1005,38 @@ const handler = setTimeout(async () => {
     setNotificationsList([]);
   };
 
+  const handleDeleteBarangMasuk = (ids: string[]) => {
+    setBarangMasukList(prev => prev.filter(item => !ids.includes(item.id)));
+    writeAuditLog(
+      'Pembersihan Database',
+      `Menghapus ${ids.length} catatan riwayat barang masuk dari database.`
+    );
+  };
+
+  const handleDeleteBarangKeluar = (ids: string[]) => {
+    setBarangKeluarList(prev => prev.filter(item => !ids.includes(item.id)));
+    writeAuditLog(
+      'Pembersihan Database',
+      `Menghapus ${ids.length} catatan riwayat barang keluar dari database.`
+    );
+  };
+
+  const handleDeleteRiwayat = (ids: string[]) => {
+    setRiwayatList(prev => prev.filter(item => !ids.includes(item.id)));
+    writeAuditLog(
+      'Pembersihan Database',
+      `Menghapus ${ids.length} catatan riwayat mutasi umum dari database.`
+    );
+  };
+
+  const handleDeleteAuditLogs = (ids: string[]) => {
+    setAuditLogsList(prev => prev.filter(item => !ids.includes(item.id)));
+    writeAuditLog(
+      'Pembersihan Database',
+      `Menghapus ${ids.length} catatan log audit aktivitas dari database.`
+    );
+  };
+
   const handleMarkNotificationRead = (id: string) => {
     if (!currentUser) return;
     setNotificationsList(prev => prev.map(n => (n.id === id ? markNotificationAsReadForUser(n, currentUser.username) : n)));
@@ -1301,6 +1333,7 @@ const handler = setTimeout(async () => {
                   supplierList={supplierList}
                   transaksiList={barangMasukList}
                   onProcessTransaksi={handleProcessTransaksiMasuk}
+                  onDeleteTransaksi={handleDeleteBarangMasuk}
                   currentUserRole={currentRole}
                   quickAddBarangId={quickAddBarangId}
                   clearQuickAdd={() => setQuickAddBarangId('')}
@@ -1317,6 +1350,7 @@ const handler = setTimeout(async () => {
                   transaksiList={barangKeluarList}
                   onProcessTransaksi={handleProcessTransaksiKeluar}
                   onApproveRejectTransaksi={handleApproveRejectTransaksiKeluar}
+                  onDeleteTransaksi={handleDeleteBarangKeluar}
                   currentUserRole={currentRole}
                   quickAddBarangId={quickAddBarangId}
                   clearQuickAdd={() => setQuickAddBarangId('')}
@@ -1324,7 +1358,14 @@ const handler = setTimeout(async () => {
                 />
               )}
 
-              {activeTab === 'riwayat' && <RiwayatView riwayat={riwayatList} settings={settings} />}
+              {activeTab === 'riwayat' && (
+                <RiwayatView
+                  riwayat={riwayatList}
+                  settings={settings}
+                  currentUserRole={currentRole}
+                  onDeleteRiwayat={handleDeleteRiwayat}
+                />
+              )}
 
               {activeTab === 'laporan' && (
                 <LaporanView barang={barangList} riwayat={riwayatList} instituteName={settings.namaInstitusi} settings={settings} />
@@ -1354,7 +1395,14 @@ const handler = setTimeout(async () => {
                 )
               )}
 
-              {activeTab === 'audit_log' && <AuditLogView logs={auditLogsList} onClearLogs={() => setAuditLogsList([])} currentUser={currentUser!} />}
+              {activeTab === 'audit_log' && (
+                <AuditLogView
+                  logs={auditLogsList}
+                  onClearLogs={() => setAuditLogsList([])}
+                  onDeleteLogs={handleDeleteAuditLogs}
+                  currentUser={currentUser!}
+                />
+              )}
 
               {activeTab === 'admin_control' && (
                 (currentUser?.role === 'Administrator' || currentUser?.username === 'admin') ? (
